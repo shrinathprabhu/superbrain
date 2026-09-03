@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Superbrain — theme checks</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      body { font: 13px ui-monospace, monospace; padding: 24px; }
+      .pass { color: #2a6a1c; } .fail { color: #b31f3c; }
+      [data-theme='dark'] .pass { color: #a8dc79; } [data-theme='dark'] .fail { color: #ff8098; }
+      li { margin: 2px 0; list-style: none; }
+      h2 { font-size: 13px; margin: 18px 0 6px; }
+      ul { padding: 0; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <h1 style="font-size:15px">Theme checks — token contrast (WCAG AA) and reveal geometry</h1>
+    <div id="out"></div>
+    <script type="module" src="/dev/contrast-check.ts"></script>
+  </body>
+</html>

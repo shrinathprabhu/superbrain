@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "superbrain",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5273", "--strictPort"],
+      "port": 5273
+    },
+    {
+      "name": "superbrain-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "5274", "--strictPort"],
+      "port": 5274
+    }
+  ]
+}
