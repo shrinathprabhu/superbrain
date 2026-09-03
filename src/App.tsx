@@ -51,7 +51,20 @@ export default function App() {
   /** An action held back until unsaved edits are dealt with. */
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
   const [route, navigate] = useRoute()
-  const [missing, setMissing] = useState<string | null>(null)
+  const [missingState, setMissingState] = useState<string | null>(null)
+  /*
+   * Mirrored in a ref because the effects below run in one pass: the route
+   * effect marks a dead link, and the URL-writeback effect runs straight after
+   * it, still holding the previous render's `missing`. Reading state there
+   * would let the auto-selected first note overwrite the address bar before
+   * the 404 ever applied, turning a bad deep link into a silent redirect.
+   */
+  const missingRef = useRef<string | null>(null)
+  const missing = missingState
+  const setMissing = (path: string | null) => {
+    missingRef.current = path
+    setMissingState(path)
+  }
   // The URL wins on first load; after that the selection drives the URL.
   const hydrated = useRef(false)
   const lastActive = useRef<string | null>(null)
@@ -263,7 +276,7 @@ export default function App() {
   //    replaces the entry instead of stacking a new one.
   const activePath = state.activeId ? store.pathFor(state.activeId) : ''
   useEffect(() => {
-    if (state.status !== 'ready' || !hydrated.current || missing) return
+    if (state.status !== 'ready' || !hydrated.current || missingRef.current) return
     if (pendingId.current) {
       const settled = state.activeId === pendingId.current
       pendingId.current = null

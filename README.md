@@ -183,15 +183,44 @@ unknown paths**. Without that, a deep link 404s on the server before the app eve
 | nginx | `try_files $uri /index.html;` |
 | Caddy | `try_files {path} /index.html` |
 | GitHub Pages | copy `dist/index.html` to `dist/404.html` |
-| Plain `python -m http.server` | no fallback — deep links will 404 |
+| Plain `python -m http.server` | no fallback, so deep links will 404 |
 
 Two consequences worth knowing. The app can no longer be opened straight off disk over
 `file://`. And it must be served from the root of its domain unless you set `base` in
 `vite.config.ts` to the subpath — the router reads that back from `import.meta.env.BASE_URL`,
 so routes follow automatically once it is set.
 
+## Caching
+
+Everything except the app shell is served immutable for a year, which is safe because
+every file under `/_superbrain/` carries a content hash in its name: change the bytes and
+you change the URL, so a stale copy can never be served.
+
+| Path | Cache-Control |
+|---|---|
+| `/_superbrain/*`, `/workbox-*.js` | `public, max-age=31536000, immutable` |
+| `/favicon.svg`, `/icon-*.png`, `/apple-touch-icon.png`, `/manifest.webmanifest` | `public, max-age=31536000, immutable` |
+| `/`, `/index.html`, `/sw.js` | `public, max-age=0, must-revalidate` |
+| note and folder routes | Vercel's default for static HTML, which is `max-age=0, must-revalidate` |
+
+`index.html` and `sw.js` are the two files that must stay fresh. `index.html` names the
+current hashed bundles, and `sw.js` is how an installed PWA learns there is a new version.
+Caching either one for a year would freeze the app permanently for anyone who had already
+visited, so a release would never reach them.
+
+The icons and `manifest.webmanifest` are the one sharp edge: their names are fixed rather
+than hashed, so they are immutable for a year under a name that never changes. **If you
+ever change an icon or the manifest, rename the file** (and update the reference in
+`vite.config.ts`), or people who have already visited will keep the old one until the year
+is up.
+
+Rules live in `vercel.json` and are matched against the incoming request path, before the
+SPA rewrite runs. That is deliberate: they only match real files, never note routes, so a
+route like `/Projects/Ideas.md` can never pick up an immutable header while serving the app
+shell.
+
 Build output is written to `/_superbrain/` rather than the usual `/assets/`, because note
-note collections very often have an `assets` folder of their own and `/assets/diagram.png` would
+collections very often have an `assets` folder of their own and `/assets/diagram.png` would
 otherwise collide with the bundle's own URLs.
 
 The installed PWA uses the same fallback offline, via the service worker's `navigateFallback`.
