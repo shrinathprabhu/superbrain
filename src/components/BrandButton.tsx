@@ -143,6 +143,22 @@ export default function BrandButton({ onSettings }: { onSettings: () => void }) 
               Vault settings
             </button>
           </div>
+          <div className="brand-pop-links">
+            <a
+              href="https://github.com/shrinathprabhu/superbrain"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source on GitHub
+            </a>
+            <span aria-hidden="true">·</span>
+            <span>
+              From the makers of{' '}
+              <a href="https://owleye.dev" target="_blank" rel="noopener noreferrer">
+                OwlEye Analytics
+              </a>
+            </span>
+          </div>
         </div>
       )}
     </div>

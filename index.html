@@ -2,11 +2,187 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Superbrain: local-first markdown notes in your browser</title>
+    <meta
+      name="description"
+      content="Superbrain is a free markdown notes app that runs entirely in your browser. Open a folder of .md files, edit with backlinks, tags and a graph view, and keep every note on your own machine. No account, no server, works offline."
+    />
+    <link rel="canonical" href="https://lowkey.tools/superbrain" />
+    <link rel="author" href="https://shrinath.me" />
+
+    <!-- Every note route serves this same shell, so they all point back at one
+         canonical URL rather than being indexed as duplicates of it. -->
+    <meta
+      name="robots"
+      content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    />
+    <meta name="author" content="Shrinath Prabhu" />
+    <meta name="application-name" content="Superbrain" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Superbrain" />
+    <meta property="og:title" content="Superbrain: local-first markdown notes in your browser" />
+    <meta
+      property="og:description"
+      content="Open a folder of markdown files and get a real notebook: editing, backlinks, tags, comments and a graph of how everything connects. Nothing is uploaded, and it works offline."
+    />
+    <meta property="og:url" content="https://lowkey.tools/superbrain" />
+    <meta property="og:image" content="https://lowkey.tools/superbrain/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Superbrain: local-first markdown notes, right in your browser. No account, no server, nothing uploaded."
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Superbrain: local-first markdown notes in your browser" />
+    <meta
+      name="twitter:description"
+      content="Open a folder of markdown files and get a real notebook: editing, backlinks, tags, comments and a graph view. Nothing is uploaded, and it works offline."
+    />
+    <meta name="twitter:image" content="https://lowkey.tools/superbrain/og.png" />
+
+    <meta name="apple-mobile-web-app-title" content="Superbrain" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#ffffff" />
-    <title>Superbrain</title>
+
+    <!-- One @graph rather than several scripts, so the app, its source and the
+         people behind it are linked nodes instead of three unrelated claims.
+         The FAQ is here because answer engines quote it directly. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://lowkey.tools/superbrain#app",
+            "name": "Superbrain",
+            "alternateName": "Superbrain Notes",
+            "url": "https://lowkey.tools/superbrain",
+            "description": "A local-first markdown notes app that runs entirely in the browser. Import a folder of .md files or a .zip, edit with backlinks, tags, comments and a graph view, and keep every note either in browser storage or in a folder on your own computer. No account, no server, works offline.",
+            "applicationCategory": "ProductivityApplication",
+            "applicationSubCategory": "Note-taking",
+            "operatingSystem": "Any (runs in a web browser)",
+            "browserRequirements": "Requires a modern browser. Saving into a folder on your computer needs the File System Access API, available in Chrome, Edge and Opera.",
+            "softwareVersion": "0.1.0",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            "featureList": [
+              "Import a folder of markdown files, a .zip, or individual notes",
+              "Rich text editing that round-trips to plain markdown",
+              "Wiki-style [[links]] and relative markdown links, resolved both ways",
+              "Backlinks and a graph view of how notes connect",
+              "Tags, comments and an extractive TL;DR for each note",
+              "Notes saved in browser storage or as ordinary .md files in a folder you pick",
+              "Optional password locking with AES-GCM encryption",
+              "Export a single note as self-contained HTML, or a whole vault as a .zip",
+              "Installable as a PWA and fully usable offline"
+            ],
+            "screenshot": "https://lowkey.tools/superbrain/og.png",
+            "image": "https://lowkey.tools/superbrain/og.png",
+            "license": "https://github.com/shrinathprabhu/superbrain",
+            "codeRepository": "https://github.com/shrinathprabhu/superbrain",
+            "author": { "@id": "https://shrinath.me#person" },
+            "creator": { "@id": "https://owleye.dev#org" },
+            "publisher": { "@id": "https://owleye.dev#org" },
+            "sameAs": ["https://github.com/shrinathprabhu/superbrain"]
+          },
+          {
+            "@type": "Person",
+            "@id": "https://shrinath.me#person",
+            "name": "Shrinath Prabhu",
+            "url": "https://shrinath.me",
+            "sameAs": ["https://github.com/shrinathprabhu"],
+            "worksFor": { "@id": "https://owleye.dev#org" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://owleye.dev#org",
+            "name": "OwlEye Analytics",
+            "url": "https://owleye.dev",
+            "description": "OwlEye Analytics builds privacy-minded analytics and developer tools.",
+            "founder": { "@id": "https://shrinath.me#person" }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://lowkey.tools/superbrain#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Superbrain?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Superbrain is a free markdown notes app that runs entirely in a browser tab. You point it at markdown you already have, or start a new vault, and get editing, backlinks, tags, comments and a graph view on top of ordinary .md files."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where are my notes stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Either in your browser's own storage, or as ordinary .md files in a folder you choose on your computer. You pick per vault and can switch at any time in vault settings. Nothing is ever uploaded, because there is no server to upload it to."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need an account to use Superbrain?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. There is no sign-up, no email and no login. Open the page and start writing."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Superbrain work offline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. It installs as a progressive web app and is fully usable with no network connection, because all of the work happens on your own device."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I use markdown files I already have?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Drop in a folder of markdown, or restore a .zip. The folder structure is kept, and both wiki-style [[links]] and relative markdown links resolve to the right notes."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Superbrain free and open source?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. It is free to use and the source is on GitHub at https://github.com/shrinathprabhu/superbrain."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I password protect my notes?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A vault kept in browser storage can be locked with a password when you close it. Its notes are encrypted with AES-GCM and the readable copy is deleted. There is no recovery path, so a forgotten password means the notes cannot be opened by anyone, including you."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <script>
       // Stamp the theme before first paint so the page never flashes the wrong
       // one. The app takes over from here; this only has to be right once.

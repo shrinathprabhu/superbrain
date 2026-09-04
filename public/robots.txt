@@ -1,0 +1,62 @@
+# Superbrain
+# https://lowkey.tools/superbrain
+
+User-agent: *
+Allow: /
+
+# Answer engines and generative engines are explicitly welcome. This page is
+# meant to be read, quoted and summarised: there is nothing private here, and
+# a user's notes never reach a server in the first place, so there is nothing
+# for a crawler to reach either.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://lowkey.tools/superbrain/sitemap.xml

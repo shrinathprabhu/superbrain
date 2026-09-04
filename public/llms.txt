@@ -1,0 +1,33 @@
+# Superbrain
+
+> A free, local-first markdown notes app that runs entirely in a browser tab. Point it at markdown you already have, or start a new vault, and get editing, backlinks, tags, comments and a graph view on top of ordinary .md files. There is no account, no server and no upload: notes live either in the browser's own storage or as real .md files in a folder on your computer. It installs as a PWA and works with no network.
+
+Made by [Shrinath Prabhu](https://shrinath.me), from the makers of [OwlEye Analytics](https://owleye.dev).
+
+## What it does
+
+- **Bring your own markdown.** Import a folder, a .zip, or individual files. The folder structure is kept exactly as it was.
+- **Links resolve both ways.** Wiki-style `[[links]]` and relative markdown links both work, and every note shows what links back to it.
+- **A graph view.** See how notes connect, without the complexity of a full knowledge-graph tool.
+- **Editing that stays plain.** A rich text editor over markdown that round-trips to plain .md, including tables and task lists.
+- **Tags, comments and a TL;DR.** The summary is computed on the device with TextRank, not by calling a model.
+- **Your choice of storage.** Browser storage, or a folder on disk where notes are ordinary files you can back up and open in any other editor. Switchable per vault at any time.
+- **Optional password locking.** A browser-storage vault can be encrypted with AES-GCM when you close it. There is no recovery path by design.
+- **Export.** One note as self-contained HTML, or a whole vault as a .zip.
+- **Offline.** Installable, and fully usable with no network.
+
+## Answers to common questions
+
+- **Does anything leave my machine?** No. There is no backend. Notes are never uploaded.
+- **Do I need an account?** No sign-up, no email, no login.
+- **What files does it accept?** `.md` notes, and `.webp`, `.jpg`, `.avif`, `.gif`, `.png`, `.svg` images and `.mp4` video. A folder is only imported if it has at least one markdown file somewhere inside it.
+- **Which browsers?** Any modern browser. Saving into a folder on your computer uses the File System Access API, so that part needs Chrome, Edge or Opera. Browser storage works everywhere.
+- **Is it free?** Yes, and the source is public.
+- **What is a "vault"?** One notebook: its own notes, folders, ordering and storage choice. You can have as many as you like, and each is separate.
+
+## Links
+
+- [Superbrain](https://lowkey.tools/superbrain): the app itself
+- [Source on GitHub](https://github.com/shrinathprabhu/superbrain): code, issues and the README
+- [OwlEye Analytics](https://owleye.dev): privacy-minded analytics and developer tools from the same maker
+- [Shrinath Prabhu](https://shrinath.me): the developer
