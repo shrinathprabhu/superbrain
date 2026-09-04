@@ -367,6 +367,10 @@ export default function Welcome() {
             <a href="https://owleye.dev" target="_blank" rel="noopener noreferrer">
               OwlEye Analytics
             </a>
+            {' '}and{' '}
+            <a href="https://lowkey.tools" target="_blank" rel="noopener noreferrer">
+              lowkey.tools
+            </a>
           </span>
         </footer>
       </div>
