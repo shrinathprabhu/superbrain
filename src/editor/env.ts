@@ -9,6 +9,11 @@ export interface EditorEnv {
   open: (nodeId: string) => void
   /** Create the missing note a broken link points at, then open it. */
   createMissing: (target: string) => void
+  /**
+   * A markdown link that resolves to nothing was clicked. The vault cannot
+   * reach outside itself, so this asks rather than acts.
+   */
+  missingLink: (target: string) => void
   assetUrl: (nodeId: string) => Promise<string | null>
   hasAssetBytes: (nodeId: string) => boolean
   excerptOf: (nodeId: string) => string

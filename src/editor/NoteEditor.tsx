@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EditorContent, useEditor, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
+import { BrokenLinks, isInternalHref } from './brokenLinks'
 import Highlight from '@tiptap/extension-highlight'
 import Typography from '@tiptap/extension-typography'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -49,9 +50,11 @@ interface Props {
   noteId: string
   onOpen: (id: string) => void
   onRequestComment: (quote: string) => void
+  /** A vault-relative link that resolves to nothing was clicked. */
+  onMissingLink: (target: string) => void
 }
 
-export default function NoteEditor({ noteId, onOpen, onRequestComment }: Props) {
+export default function NoteEditor({ noteId, onOpen, onRequestComment, onMissingLink }: Props) {
   const store = useStore()
   const state = useVault()
   const resolver = useResolver()
@@ -74,11 +77,12 @@ export default function NoteEditor({ noteId, onOpen, onRequestComment }: Props) 
       const name = parts.pop() ?? target
       void store.createNote(store.node(noteId)?.parentId ?? null, name).then(onOpen)
     },
+    missingLink: onMissingLink,
     assetUrl: (id: string) => store.assetUrl(id),
     hasAssetBytes: (id: string) => store.hasAssetBytes(id),
     excerptOf: (id: string) => excerpt(store.body(id), 200),
     readonly: false,
-  }), [notePath, noteId, resolver, onOpen, store])
+  }), [notePath, noteId, resolver, onOpen, onMissingLink, store])
   envRef.current = env
 
   // ------------------------------------------------------------- suggestions
@@ -159,6 +163,10 @@ export default function NoteEditor({ noteId, onOpen, onRequestComment }: Props) 
   linkItemsRef.current = linkItems
   const slashItemsRef = useRef(slashItems)
   slashItemsRef.current = slashItems
+  const resolverRef = useRef(resolver)
+  resolverRef.current = resolver
+  const notePathRef = useRef(notePath)
+  notePathRef.current = notePath
 
   const extensions = useMemo(() => [
     StarterKit.configure({
@@ -182,6 +190,7 @@ export default function NoteEditor({ noteId, onOpen, onRequestComment }: Props) 
     TaskItem.configure({ nested: true }),
     VaultMedia.configure({ inline: false, allowBase64: true }),
     WikiLink,
+    BrokenLinks(target => resolverRef.current.resolve(target, notePathRef.current)),
     CommentHighlight.configure({
       getComments: () => store.getSnapshot().comments.filter(c => c.noteId === noteId),
       getActiveId: () => null,
@@ -226,10 +235,18 @@ export default function NoteEditor({ noteId, onOpen, onRequestComment }: Props) 
             window.open(href, '_blank', 'noopener,noreferrer')
             return true
           }
-          const hit = envRef.current?.resolve(decodeURI(href.replace(/#.*$/, '')))
+          const target = decodeURI(href.replace(/#.*$/, ''))
+          const hit = envRef.current?.resolve(target)
           if (hit && hit.kind === 'note') {
             event.preventDefault()
             onOpen(hit.id)
+            return true
+          }
+          // A vault-relative link with nothing behind it: offer to fetch it
+          // rather than letting the click do nothing at all.
+          if (!hit && isInternalHref(href)) {
+            event.preventDefault()
+            envRef.current?.missingLink(target)
             return true
           }
           return false

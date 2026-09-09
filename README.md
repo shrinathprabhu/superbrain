@@ -120,6 +120,38 @@ opened. A zip that wraps everything in one top-level folder has that wrapper str
 vault does not end up nested inside a folder named after itself. Exporting to `.zip` and
 dropping it back gives you the same book.
 
+## Importing
+
+An import brings in what you pointed at, and nothing else. Three rules keep it that way.
+
+**It merges, it does not duplicate.** A folder of the same name is reused rather than
+created twice, and a file already at that path is left alone. Importing the same folder
+twice is a no-op that says so, instead of filling the vault with `note 2.md`. Anything
+already there whose content differs is reported and left untouched, because the copy in
+the vault may be the one you edited.
+
+**It lands where you can predict.** A folder or a `.zip` goes to the top of the vault, or
+inside a folder only when a folder is what you selected. It used to follow
+`active.parentId`, so importing while reading a note filed the whole thing inside that
+note's folder, and importing twice produced `Research/Research`.
+
+**A zip keeps its folder when it joins a vault.** `readZip` unwraps a single top-level
+folder, which is right when the zip *becomes* the vault and wrong when it is filed into
+one. `importZip(file, parentId, unwrap)` says which of the two is happening.
+
+Links are never followed. A markdown link that points outside the vault, like
+`../Finance/Budget.md`, is drawn in red with a dashed underline; clicking it offers to
+import the folder it names or to create the note here, and does nothing at all until you
+choose. Nothing arrives in a vault because a note mentioned it.
+
+The folder picker takes one folder per pick, in every browser. Dragging several folders
+onto the window at once works, and each arrives as its own top-level folder.
+
+One thing worth knowing: a symlink inside the folder you pick is followed by the browser
+before this app sees anything, and the files come through looking like ordinary contents.
+There is no API that reveals the difference, so a symlinked folder cannot be filtered out
+here. Move or remove the link if you do not want what it points at.
+
 ## Ordering
 
 Files are listed by name: digits before letters, and a shorter name before one that extends

@@ -895,6 +895,17 @@ export class VaultStore {
       return current
     }
 
+    /*
+     * An import merges into the tree rather than piling a second copy beside
+     * it. Folders of the same name are reused, and a file that already exists
+     * at the same path is left exactly as it is: re-importing a folder is then
+     * a no-op instead of a vault full of "note 2.md". Anything already there
+     * with different content is reported rather than silently overwritten,
+     * because the copy in the vault may be the edited one.
+     */
+    let skippedSame = 0
+    const skippedDiffer: string[] = []
+
     let done = 0
     for (const item of files) {
       const parts = item.path.split('/').filter(Boolean)
@@ -902,7 +913,26 @@ export class VaultStore {
       if (parts.some(p => IGNORED.has(p) || p.startsWith('.')) || base.startsWith('.')) { done++; continue }
       const folderId = ensureFolderChain(parts)
       const siblings = nodes.filter(n => n.parentId === folderId)
-      const name = uniqueName(siblings, sanitizeName(base))
+      const wanted = sanitizeName(base)
+
+      const already = siblings.find(
+        n => n.kind !== 'folder' && !n.deletedAt && n.name.toLowerCase() === wanted.toLowerCase(),
+      )
+      if (already) {
+        if (already.kind === 'note') {
+          const incoming = await item.file.text()
+          if ((bodies.get(already.id) ?? '') === incoming) skippedSame++
+          else skippedDiffer.push(item.path)
+        } else if (already.size === item.file.size) {
+          skippedSame++
+        } else {
+          skippedDiffer.push(item.path)
+        }
+        this.set({ progress: { label: 'Importing', done: ++done, total: files.length } })
+        continue
+      }
+
+      const name = uniqueName(siblings, wanted)
       const now = Date.now()
       const isNote = isMarkdownFile(name)
       const node: VaultNode = {
@@ -941,6 +971,7 @@ export class VaultStore {
       }
     }
 
+    this.lastIntake = { ...intake, alreadyHere: skippedSame, conflicting: skippedDiffer }
     this.set({ progress: null })
     const firstNote = created.map(id => nodes.find(n => n.id === id)!).find(n => n.kind === 'note')
     if (firstNote) this.setActive(firstNote.id)
@@ -953,11 +984,15 @@ export class VaultStore {
   intakeReport(): Intake | null { return this.lastIntake }
 
   /** Unpack a `.zip` into this book, or into a new one from the welcome screen. */
-  async importZip(zip: File, parentId: string | null): Promise<string[]> {
+  /**
+   * `unwrap` drops the zip's single wrapping folder. That is right when the zip
+   * is becoming the vault, and wrong when it is being filed into one.
+   */
+  async importZip(zip: File, parentId: string | null, unwrap = false): Promise<string[]> {
     const { readZip } = await import('../lib/export')
     this.set({ progress: { label: 'Unpacking', done: 0, total: 0 } })
     try {
-      const entries = await readZip(zip)
+      const entries = await readZip(zip, unwrap)
       return await this.importFiles(entries, parentId)
     } catch (e) {
       this.set({ error: `Could not read ${zip.name}: ${(e as Error).message}` })

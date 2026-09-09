@@ -14,7 +14,7 @@ import NoteEditor from './editor/NoteEditor'
 // the first paint saves the reader ~60 kB they may never use.
 const GraphView = lazy(() => import('./components/GraphView'))
 import { filesFromDrop, filesFromInput } from './lib/dropfiles'
-import { describeSkipped } from './lib/intake'
+import { describeMerge, describeSkipped } from './lib/intake'
 import { ACCEPTED_SUMMARY, ACCEPT_ATTR } from './lib/util'
 import Toasts, { type Toast } from './components/Toasts'
 import ThemeToggle from './components/ThemeToggle'
@@ -75,6 +75,8 @@ export default function App() {
   const folderImportInput = useRef<HTMLInputElement>(null)
   const zipImportInput = useRef<HTMLInputElement>(null)
   const [addOpen, setAddOpen] = useState(false)
+  /* A link pointing outside the vault, waiting on what to do about it. */
+  const [missingLink, setMissingLink] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Pick up where the last session left off: re-attach to the folder if the
@@ -196,17 +198,24 @@ export default function App() {
       if (rest.length) brought += (await store.importFiles(rest, parentId)).length
 
       const report = store.intakeReport()
+      const merged = report && describeMerge(report)
       if (!brought) {
+        // Nothing new is not the same as nothing usable: re-importing a folder
+        // that is already here lands exactly zero nodes, and saying "nothing
+        // was imported, it needs a .md file" would be a lie about the cause.
         notify(
-          report?.rejected.length
-            ? `Nothing was imported. This vault takes ${ACCEPTED_SUMMARY}, and needs at least one .md file.`
-            : 'Nothing was imported. A folder needs at least one .md file somewhere inside it.',
-          'warn',
+          merged
+            ? `Nothing new to add. ${merged}`
+            : report?.rejected.length
+              ? `Nothing was imported. This vault takes ${ACCEPTED_SUMMARY}, and needs at least one .md file.`
+              : 'Nothing was imported. A folder needs at least one .md file somewhere inside it.',
+          merged ? 'info' : 'warn',
         )
         return
       }
       const skipped = report && describeSkipped(report)
       if (skipped) notify(skipped, 'warn')
+      if (merged) notify(`Added ${brought} file${brought === 1 ? '' : 's'}. ${merged}`)
     })()
   }, [store, notify])
 
@@ -441,6 +450,10 @@ export default function App() {
                       className="menu-item"
                       onClick={() => { setAddOpen(false); zipImportInput.current?.click() }}
                     >Vault from a .zip…</button>
+                    <p className="menu-note">
+                      A folder picker takes one folder at a time. To add several at once,
+                      drag them onto this window together.
+                    </p>
                   </div>
                 )}
               </div>
@@ -500,6 +513,7 @@ export default function App() {
                   noteId={active.id}
                   onOpen={open}
                   onRequestComment={setPendingComment}
+                  onMissingLink={setMissingLink}
                 />
               )}
             </>
@@ -554,7 +568,14 @@ export default function App() {
         onChange={e => {
           const files = filesFromInput(e.target.files)
           e.target.value = ''
-          intake(files, active?.kind === 'folder' ? active.id : active?.parentId ?? null)
+          /*
+           * A zip is a whole subtree, so it lands at the top of the vault, or
+           * inside a folder only when a folder is what you actually picked.
+           * Filing it under `active.parentId` meant importing while reading a
+           * note buried it in that note's folder, and importing the same zip
+           * twice produced Research/Research.
+           */
+          intake(files, active?.kind === 'folder' ? active.id : null)
         }}
       />
 
@@ -564,6 +585,32 @@ export default function App() {
         </div>
       )}
       {confirm && <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />}
+      {missingLink && (
+        <ConfirmDialog
+          request={{
+            title: `“${missingLink}” is not in this vault`,
+            body:
+              'This link points somewhere the vault cannot reach. Nothing is imported on its own, ' +
+              'so you can bring in the folder it lives in, or start the note here and write it yourself.',
+            details: [
+              'Importing adds a copy. The folder on your computer is not moved or changed.',
+              'Anything already here with the same name is left exactly as it is.',
+            ],
+            confirmLabel: 'Choose a folder to import',
+            tone: 'normal',
+            secondary: {
+              label: 'Create this note instead',
+              onClick: () => {
+                const name = missingLink.split('/').pop() || missingLink
+                void store.createNote(active?.parentId ?? null, name).then(open)
+                setMissingLink(null)
+              },
+            },
+            onConfirm: () => folderImportInput.current?.click(),
+          }}
+          onClose={() => setMissingLink(null)}
+        />
+      )}
       {closing && <CloseVaultDialog onClose={() => setClosing(false)} />}
       {settingsOpen && <BookSettings onClose={() => setSettingsOpen(false)} />}
       {pendingAction && (

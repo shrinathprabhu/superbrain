@@ -235,6 +235,20 @@ section('name ordering')
   )
   eq('each folder is numbered independently',
     childrenOf(nested, 'p').map(n => n.name), ['x.md', 'y.md'])
+
+  /*
+   * An import that adds nothing has to leave the vault exactly as it was. The
+   * caller empties its own array and refills it from this return value, so
+   * handing back the same reference cleared the array before it could be read
+   * and every node in the vault disappeared.
+   */
+  const untouched = [node('a', 'Kept.md', 0), node('b', 'Also kept.md', 1)]
+  const same = orderNewByName(untouched, [])
+  eq('nothing new leaves the list intact', same.map(n => n.name), ['Kept.md', 'Also kept.md'])
+  eq('nothing new returns a copy, not the caller\'s own array', same !== untouched, true)
+  same.length = 0
+  eq('clearing the result cannot empty the original', untouched.map(n => n.name),
+    ['Kept.md', 'Also kept.md'])
 }
 
 // ------------------------------------------------------------- headings

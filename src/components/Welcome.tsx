@@ -135,7 +135,7 @@ export default function Welcome() {
       )
 
       let brought = 0
-      for (const zip of zips) brought += (await store.importZip(zip.file, null)).length
+      for (const zip of zips) brought += (await store.importZip(zip.file, null, true)).length
       if (rest.length) brought += (await store.importFiles(rest, null)).length
 
       const report = store.intakeReport()

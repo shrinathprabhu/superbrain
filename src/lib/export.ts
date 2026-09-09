@@ -66,7 +66,7 @@ export interface ZipEntry { path: string; file: File }
  * folder; that wrapper is stripped so the book does not end up nested inside a
  * folder named after itself.
  */
-export async function readZip(zip: File): Promise<ZipEntry[]> {
+export async function readZip(zip: File, unwrap = true): Promise<ZipEntry[]> {
   const { unzip } = await import('fflate')
   const bytes = new Uint8Array(await zip.arrayBuffer())
 
@@ -77,9 +77,16 @@ export async function readZip(zip: File): Promise<ZipEntry[]> {
   const paths = Object.keys(unpacked).filter(path => !path.endsWith('/'))
   if (!paths.length) return []
 
+  /*
+   * A zip that becomes a vault of its own gets its wrapper folder removed, so
+   * `Research.zip` holding `Research/…` opens as the vault rather than as a
+   * vault containing one folder. Adding the same zip *into* an existing vault
+   * must keep that folder: there the wrapper is the thing being filed, and
+   * dropping it would spill the notes across the vault root.
+   */
   const firstSegments = new Set(paths.map(p => p.split('/')[0]))
   const nested = paths.every(p => p.includes('/'))
-  const strip = nested && firstSegments.size === 1 ? `${[...firstSegments][0]}/` : ''
+  const strip = unwrap && nested && firstSegments.size === 1 ? `${[...firstSegments][0]}/` : ''
 
   return paths.map(path => {
     const trimmed = strip && path.startsWith(strip) ? path.slice(strip.length) : path

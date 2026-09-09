@@ -25,6 +25,10 @@ export interface Intake {
   prunedFolders: string[]
   /** True when nothing at all qualified. */
   empty: boolean
+  /** Already in the vault, byte for byte, so nothing was done. */
+  alreadyHere?: number
+  /** Already in the vault under the same path but different, so left alone. */
+  conflicting?: string[]
 }
 
 const topOf = (path: string) => (path.includes('/') ? path.split('/')[0] : '')
@@ -93,4 +97,22 @@ export function describeSkipped(intake: Intake): string | null {
   }
   if (!parts.length) return null
   return `Imported what it could and ${parts.join(', and ')}.`
+}
+
+/** What a merge left untouched, or null when it touched everything. */
+export function describeMerge(intake: Intake): string | null {
+  const parts: string[] = []
+  const same = intake.alreadyHere ?? 0
+  const clash = intake.conflicting ?? []
+  if (same) parts.push(`${same} file${same === 1 ? ' was' : 's were'} already here unchanged`)
+  if (clash.length) {
+    const shown = clash.slice(0, 3).join(', ')
+    parts.push(
+      `${clash.length} already exist${clash.length === 1 ? 's' : ''} with different content and ` +
+      `${clash.length === 1 ? 'was' : 'were'} left as ${clash.length === 1 ? 'it is' : 'they are'} ` +
+      `(${shown}${clash.length > 3 ? '…' : ''})`,
+    )
+  }
+  if (!parts.length) return null
+  return `${parts.join(', and ')}.`
 }

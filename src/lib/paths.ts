@@ -46,7 +46,13 @@ export function childrenOf(nodes: VaultNode[], parentId: string | null): VaultNo
  */
 export function orderNewByName(nodes: VaultNode[], createdIds: Iterable<string>): VaultNode[] {
   const created = new Set(createdIds)
-  if (!created.size) return nodes
+  /*
+   * A copy, never the caller's own array. `importFiles` empties its list and
+   * refills it from the return value; handing back the same reference made
+   * that sequence clear the array it was about to read, wiping every node in
+   * the vault whenever an import created nothing new.
+   */
+  if (!created.size) return [...nodes]
 
   const startOf = new Map<string | null, number>()
   for (const node of nodes) {

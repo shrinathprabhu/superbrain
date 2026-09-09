@@ -280,6 +280,11 @@ kbd {
 }
 .menu-item:hover { background: var(--bg-hover); }
 .menu-item.danger { color: var(--danger); }
+.menu-note {
+  margin: 4px 8px 2px; padding-top: 7px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 11.5px; line-height: 1.5; color: var(--text-faint); max-width: 22em;
+}
 .menu-sep { height: 1px; background: var(--border-soft); margin: 4px 2px; }
 
 /* -------------------------------------------------------------------- main */
@@ -378,6 +383,22 @@ kbd {
 }
 .wikilink:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .wikilink.broken { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); border-bottom-style: dashed; }
+
+/* A markdown link with nothing behind it, drawn like a broken wikilink so the
+   two kinds of dead end read the same way. */
+.prose a.broken-link, .prose .broken-link {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 13%, transparent);
+  text-decoration-style: dashed;
+  text-decoration-color: currentColor;
+  text-underline-offset: 2px;
+  border-radius: 3px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.prose a.broken-link:hover, .prose .broken-link:hover {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+}
 
 .embed-host { display: block; margin: 1em 0; }
 .note-embed {
