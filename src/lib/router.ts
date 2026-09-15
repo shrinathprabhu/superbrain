@@ -8,13 +8,8 @@ import { useCallback, useEffect, useState } from 'react'
  * dev server does it out of the box — see the hosting notes in the README.
  */
 
-/** Vite's base, normalised to '' or '/sub'. Routes are relative to it. */
-const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '')
-
 export function currentRoute(): string {
-  let raw = window.location.pathname
-  if (BASE && raw.startsWith(BASE)) raw = raw.slice(BASE.length)
-  raw = raw.replace(/^\/+/, '')
+  const raw = window.location.pathname.replace(/^\/+/, '')
   if (!raw) return ''
   try {
     return raw.split('/').map(decodeURIComponent).join('/')
@@ -24,8 +19,8 @@ export function currentRoute(): string {
 }
 
 export function routeFor(path: string): string {
-  if (!path) return `${BASE}/`
-  return `${BASE}/${path.split('/').map(encodeURIComponent).join('/')}`
+  if (!path) return '/'
+  return `/${path.split('/').map(encodeURIComponent).join('/')}`
 }
 
 export function useRoute(): [string, (path: string, replace?: boolean) => void] {

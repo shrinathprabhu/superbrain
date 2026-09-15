@@ -2,12 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://lowkey.tools/superbrain</loc>
-    <lastmod>2026-09-04</lastmod>
+    <loc>https://superbrain.lowkey.tools/</loc>
+    <lastmod>2026-09-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://lowkey.tools/superbrain/og.png</image:loc>
+      <image:loc>https://superbrain.lowkey.tools/og.png</image:loc>
       <image:title>Superbrain: local-first markdown notes in your browser</image:title>
     </image:image>
   </url>

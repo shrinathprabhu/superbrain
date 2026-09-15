@@ -1,0 +1,51 @@
+# Cloudflare Workers Static Assets / Netlify cache rules.
+# Avoid a wildcard Cache-Control default: overlapping header values are joined.
+# Unmatched note routes use the static asset service's default revalidation policy.
+
+/_superbrain/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/workbox-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/favicon.svg
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/icon-192.png
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/icon-512.png
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/icon-maskable-512.png
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
+/og.png
+  Cache-Control: public, max-age=86400
+
+/robots.txt
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sitemap.xml
+  Cache-Control: public, max-age=0, must-revalidate
+
+/llms.txt
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/registerSW.js
+  Cache-Control: public, max-age=0, must-revalidate

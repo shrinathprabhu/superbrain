@@ -1,5 +1,5 @@
 # Superbrain
-# https://lowkey.tools/superbrain
+# https://superbrain.lowkey.tools/
 
 User-agent: *
 Allow: /
@@ -59,4 +59,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://lowkey.tools/superbrain/sitemap.xml
+Sitemap: https://superbrain.lowkey.tools/sitemap.xml

@@ -2,7 +2,7 @@
 
 > A free, local-first markdown notes app that runs entirely in a browser tab. Point it at markdown you already have, or start a new vault, and get editing, backlinks, tags, comments and a graph view on top of ordinary .md files. There is no account, no server and no upload: notes live either in the browser's own storage or as real .md files in a folder on your computer. It installs as a PWA and works with no network.
 
-Made by [Shrinath Prabhu](https://shrinath.me), from the makers of [OwlEye Analytics](https://owleye.dev).
+Made by [Shrinath Prabhu](https://shrinath.me), from the makers of [OwlEye Analytics](https://owleye.dev). Part of [lowkey.tools](https://lowkey.tools).
 
 ## What it does
 
@@ -27,7 +27,10 @@ Made by [Shrinath Prabhu](https://shrinath.me), from the makers of [OwlEye Analy
 
 ## Links
 
-- [Superbrain](https://lowkey.tools/superbrain): the app itself
+- [Superbrain](https://superbrain.lowkey.tools/): the app itself
 - [Source on GitHub](https://github.com/shrinathprabhu/superbrain): code, issues and the README
 - [OwlEye Analytics](https://owleye.dev): privacy-minded analytics and developer tools from the same maker
 - [Shrinath Prabhu](https://shrinath.me): the developer
+- [Shrinath on X](https://x.com/shrinath_prabhu): follow the maker
+- [lowkey.tools](https://lowkey.tools): explore more tools from the same maker
+- [SuperFocus](https://superfocus.lowkey.tools): give an idea from your notes 25 minutes with a Pomodoro timer, tasks and quiet music

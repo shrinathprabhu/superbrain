@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useStore, useVault } from '../store/vault'
 import BrandMark from './BrandMark'
+import MadeBy from './MadeBy'
 import { PROMISES } from './promises'
 
 /**
@@ -144,20 +145,7 @@ export default function BrandButton({ onSettings }: { onSettings: () => void }) 
             </button>
           </div>
           <div className="brand-pop-links">
-            <a
-              href="https://github.com/shrinathprabhu/superbrain"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Source on GitHub
-            </a>
-            <span aria-hidden="true">·</span>
-            <span>
-              From the makers of{' '}
-              <a href="https://owleye.dev" target="_blank" rel="noopener noreferrer">
-                OwlEye Analytics
-              </a>
-            </span>
+            <MadeBy compact />
           </div>
         </div>
       )}

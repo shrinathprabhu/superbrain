@@ -4,16 +4,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   /*
-   * The app is published at lowkey.tools/superbrain, which proxies through to
-   * this project's own origin and strips the prefix on the way. So every URL
-   * the page emits has to carry `/superbrain/`: that is what the browser asks
-   * lowkey.tools for, and the proxy hands the rest to this origin at its root.
-   *
-   * Deep links mean these must be absolute rather than relative, since a
-   * relative bundle path would resolve against the note route instead of the
-   * app. The router reads this back from import.meta.env.BASE_URL.
+   * The app has a subdomain to itself, so it serves from the root. Deep links
+   * mean this must be absolute rather than relative: a relative bundle path
+   * would resolve against the note route instead of the app.
    */
-  base: '/superbrain/',
+  base: '/',
   build: {
     // Kept off the generic /assets/ path: a note vault very often has its own
     // `assets` folder, and that would route straight into the build output.
@@ -44,11 +39,10 @@ export default defineConfig({
         // Deep links have to resolve to the app shell offline, exactly as the
         // host rewrites them online.
         navigateFallback: 'index.html',
-        // Matches the built asset path whether or not the base prefix is present.
-        navigateFallbackDenylist: [/(^|\/)_superbrain\//],
+        navigateFallbackDenylist: [/^\/_superbrain\//],
       },
       manifest: {
-        id: '/superbrain/',
+        id: '/',
         name: 'Superbrain: local-first markdown notes',
         short_name: 'Superbrain',
         description:
@@ -59,11 +53,11 @@ export default defineConfig({
         theme_color: '#0e1017',
         background_color: '#0e1017',
         display: 'standalone',
-        start_url: '/superbrain/',
-        scope: '/superbrain/',
+        start_url: '/',
+        scope: '/',
         screenshots: [
           {
-            src: '/superbrain/og.png',
+            src: '/og.png',
             sizes: '1200x630',
             type: 'image/png',
             form_factor: 'wide',
@@ -71,9 +65,9 @@ export default defineConfig({
           },
         ],
         icons: [
-          { src: '/superbrain/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/superbrain/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/superbrain/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),

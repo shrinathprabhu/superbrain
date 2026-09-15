@@ -72,7 +72,7 @@ function socialCard() {
     <text x="96" y="384" fill="#a6b3c8" font-family="${face}" font-size="34">No account, no server, nothing uploaded.</text>
     <rect x="96" y="452" width="1008" height="1" fill="#333c4f"/>
     <text x="96" y="510" fill="#8593a9" font-family="${face}" font-size="26">Markdown · Backlinks · Graph view · Works offline</text>
-    <text x="96" y="558" fill="#7aa2f7" font-family="${face}" font-size="26" font-weight="500">From the makers of OwlEye Analytics</text>
+    <text x="96" y="558" fill="#7aa2f7" font-family="${face}" font-size="26" font-weight="500">by @shrinath_prabhu</text>
   </svg>`
 }
 

@@ -211,105 +211,125 @@ unknown paths**. Without that, a deep link 404s on the server before the app eve
 |---|---|
 | `pnpm dev` / `pnpm preview` | works out of the box |
 | Netlify | `public/_redirects` (already in the repo) |
-| Vercel | `vercel.json` (already in the repo) |
+| Cloudflare Workers | `wrangler.toml`, `public/_headers`, and `pnpm build:workers` |
 | nginx | `try_files $uri /index.html;` |
 | Caddy | `try_files {path} /index.html` |
 | GitHub Pages | copy `dist/index.html` to `dist/404.html` |
 | Plain `python -m http.server` | no fallback, so deep links will 404 |
 
-Two consequences worth knowing. The app can no longer be opened straight off disk over
-`file://`. And every URL it emits carries the `base` from `vite.config.ts`; the router reads
-that back from `import.meta.env.BASE_URL`, so routes follow automatically once it is set.
+The app must be served over HTTP or HTTPS; opening `index.html` directly with `file://`
+does not support its routes or service worker.
 
-### Published at a subpath
+### Subdomain deployment
 
-`base` is `/superbrain/`, because the app is published at `lowkey.tools/superbrain` and
-reached through a proxy:
+The production URL is [superbrain.lowkey.tools](https://superbrain.lowkey.tools/).
+Vite serves from `/`, and the PWA manifest uses `/` for its ID, start URL and scope.
+Note links such as `/Projects/Ideas.md` resolve directly from the domain root.
 
-```json
-// lowkey.tools/vercel.json
-{ "source": "/superbrain",        "destination": "https://superbrain.lowkey.tools" },
-{ "source": "/superbrain/:path*", "destination": "https://superbrain.lowkey.tools/:path*" }
+`wrangler.toml` configures Workers Static Assets, the SPA fallback, and
+`superbrain.lowkey.tools` as a custom domain. Build with `pnpm build:workers`, then
+deploy with `pnpm dlx wrangler@4 deploy`.
+
+Build output is written to `/_superbrain/` rather than `/assets/`, because a note vault
+may have its own `assets` folder. This is an asset directory, not an app URL prefix.
+The service worker supplies the same app-shell fallback for note routes offline.
+
+### Cloudflare Workers
+
+Connect this repository to a **Worker** with these Workers Builds settings:
+
+| Setting | Value |
+|---|---|
+| Worker name | `superbrain` (matches `wrangler.toml`) |
+| Production branch | The branch you want to publish |
+| Root directory | Repository root; leave blank |
+| Build command | `pnpm build:workers` |
+| Deploy command | `pnpm dlx wrangler@4 deploy` |
+| Non-production branch deploy command | `pnpm dlx wrangler@4 versions upload` |
+| Node.js | `24.18.1`, read from `.node-version` |
+| Build environment variable | `PNPM_VERSION=10.28.1` |
+
+The output directory is configured as `assets.directory = "./dist"` in
+`wrangler.toml`. Workers Builds runs the build and deploy commands separately;
+there is no Pages output-directory field. See Cloudflare's
+[Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
+
+The `[[routes]]` entry in `wrangler.toml` declares `superbrain.lowkey.tools` with
+`custom_domain = true`. Deploying with Wrangler applies this domain configuration;
+the `lowkey.tools` zone must be active in the deploying Cloudflare account.
+See [Cloudflare's custom-domain setup](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+The canonical remains `https://superbrain.lowkey.tools/` on both the custom domain
+and preview URLs.
+
+`pnpm build:workers` runs the normal production build and removes the Netlify
+`_redirects` file from `dist`. Workers serves the files through Static Assets;
+`not_found_handling = "single-page-application"` returns the app shell for note URLs
+such as `/Projects/Ideas.md`. `html_handling = "none"` preserves note and folder paths
+without HTML redirects. No Worker script, database or runtime secrets are required.
+See Cloudflare's [SPA configuration](https://developers.cloudflare.com/workers/static-assets/migration-guides/migrate-from-pages/).
+
+To preview Workers routing and headers locally:
+
+```bash
+pnpm build:workers
+pnpm dlx wrangler@4 dev
 ```
 
-That rewrite **strips** the prefix, so the origin receives `/Welcome.md` while the browser's
-address bar says `/superbrain/Welcome.md`. The base is what keeps the two in step: the page
-asks `lowkey.tools` for `/superbrain/_superbrain/index-abc.js`, the proxy hands the origin
-`/_superbrain/index-abc.js`, and a real file comes back.
+For a manual deployment after authenticating with Cloudflare:
 
-With `base: '/'` this does not work at all. The HTML would ask for `/_superbrain/index-abc.js`
-at the domain root, which matches none of those rewrites, and the page renders blank.
+```bash
+pnpm build:workers
+pnpm dlx wrangler@4 deploy
+```
 
-The origin stays usable on its own: `vercel.json` rewrites `/superbrain/(.*)` to `/$1` ahead
-of the SPA catch-all, so `superbrain.lowkey.tools/` and `superbrain.lowkey.tools/Welcome.md`
-both work. Both hosts serve the same page, and both declare the same canonical, so search
-engines fold them together rather than treating one as a duplicate.
+To validate the deployment configuration without publishing:
 
-## Discovery
+```bash
+pnpm build:workers
+pnpm dlx wrangler@4 deploy --dry-run
+```
 
-The app is one page as far as a crawler is concerned, so the metadata all lives in
-`index.html` and the crawler files are static in `public/`.
+Wrangler reads `dist` and the Worker name from `wrangler.toml`. If your existing
+Worker has another name, update `name` before deploying. Generated local Wrangler
+state is ignored by Git.
 
-| File | What it is for |
+## Discovery and credits
+
+The canonical, Open Graph, Twitter and JSON-LD app URLs in `index.html` all use
+`https://superbrain.lowkey.tools/`. Note routes share that canonical because notes are
+local data, not public pages. The app, maker, OwlEye Analytics, Lowkey collection and
+FAQ have linked structured data; these describe the product without guaranteeing
+search or answer-engine placement.
+
+| File | Purpose |
 |---|---|
-| `public/robots.txt` | Allows everything, and names the answer-engine and generative-engine crawlers explicitly. Points at the sitemap. |
-| `public/sitemap.xml` | One URL, the canonical one, with the social card attached. |
-| `public/llms.txt` | The [llmstxt.org](https://llmstxt.org) summary: what the app is, what it does, and the answers to the questions people actually ask. |
-| `public/og.png` | 1200x630 social card, generated by `pnpm icons` from the same dolphin the favicon comes from. Replace it with a designed one whenever you like; the meta tags point at the path, not the artwork. |
+| `public/robots.txt` | Crawl rules and the subdomain sitemap URL |
+| `public/sitemap.xml` | The canonical homepage and social image |
+| `public/llms.txt` | Product summary, common questions and official links |
+| `public/og.png` | Existing 1200×630 social card used by Open Graph and Twitter |
 
-`index.html` carries the canonical link, the Open Graph and Twitter tags, and one JSON-LD
-`@graph` holding four linked nodes: the `WebApplication`, the `Person` who wrote it, the
-`Organization` behind it, and an `FAQPage`. The FAQ is there because answer engines quote
-it directly, which is the whole point of writing one.
-
-Every note route serves the same shell, so all of them declare the same canonical URL.
-That is what stops `/Projects/Ideas.md` being indexed as a thin duplicate of the home page.
-
-Two of these files only work from the root of a domain. `robots.txt` and `llms.txt` are
-read at `https://example.com/robots.txt`, never at `https://example.com/subpath/robots.txt`.
-If the app is served under a path, copy those two into the root project as well.
+`pnpm icons` regenerates the icons and social card from the brand mark. The welcome
+footer and vault menu credit Shrinath Prabhu, OwlEye Analytics and lowkey.tools, with
+one companion recommendation: SuperFocus at `superfocus.lowkey.tools`. Public credit
+and companion URLs live in `src/lib/lowkey.ts`.
 
 ## Caching
 
-Everything except the app shell is served immutable for a year, which is safe because
-every file under `/_superbrain/` carries a content hash in its name: change the bytes and
-you change the URL, so a stale copy can never be served.
+Cache rules are defined in `public/_headers`, which Vite copies into `dist`.
+Workers applies these rules to [static asset responses](https://developers.cloudflare.com/workers/static-assets/headers/).
 
-| Path | Cache-Control |
+| Paths | Cache policy |
 |---|---|
-| `/_superbrain/*`, `/workbox-*.js` | `public, max-age=31536000, immutable` |
-| the same two under `/superbrain/*`, for direct origin visits | `public, max-age=31536000, immutable` |
-| `/favicon.svg`, `/icon-*.png`, `/apple-touch-icon.png`, `/manifest.webmanifest` | `public, max-age=31536000, immutable` |
-| `/og.png` | `public, max-age=86400` |
-| `/robots.txt`, `/sitemap.xml`, `/llms.txt` | `public, max-age=0, must-revalidate` |
-| `/`, `/index.html`, `/sw.js` | `public, max-age=0, must-revalidate` |
-| note and folder routes | Vercel's default for static HTML, which is `max-age=0, must-revalidate` |
+| Hashed `/_superbrain/*` and `/workbox-*.js` | Immutable for one year |
+| Fixed-name icons | One day, then revalidate |
+| `/og.png` | One day |
+| `/manifest.webmanifest`, `/sw.js`, `/registerSW.js` | Revalidate on each request |
+| `/`, `/index.html`, `/robots.txt`, `/sitemap.xml`, `/llms.txt` | Revalidate on each request |
 
-`index.html` and `sw.js` are the two files that must stay fresh. `index.html` names the
-current hashed bundles, and `sw.js` is how an installed PWA learns there is a new version.
-Caching either one for a year would freeze the app permanently for anyone who had already
-visited, so a release would never reach them.
-
-The crawler-facing files are deliberately not immutable: `robots.txt`, `sitemap.xml` and
-`llms.txt` are meant to be edited, and `og.png` gets a day so a replacement card shows up
-the same week rather than the same year.
-
-The icons and `manifest.webmanifest` are the one sharp edge: their names are fixed rather
-than hashed, so they are immutable for a year under a name that never changes. **If you
-ever change an icon or the manifest, rename the file** (and update the reference in
-`vite.config.ts`), or people who have already visited will keep the old one until the year
-is up.
-
-Rules live in `vercel.json` and are matched against the incoming request path, before the
-SPA rewrite runs. That is deliberate: they only match real files, never note routes, so a
-route like `/Projects/Ideas.md` can never pick up an immutable header while serving the app
-shell.
-
-Build output is written to `/_superbrain/` rather than the usual `/assets/`, because note
-collections very often have an `assets` folder of their own and `/assets/diagram.png` would
-otherwise collide with the bundle's own URLs.
-
-The installed PWA uses the same fallback offline, via the service worker's `navigateFallback`.
+The manifest and service-worker registration must stay fresh so updates to the PWA's
+root scope and entry point reach returning visitors. Verify hosted response headers
+after deployment; a local Vite preview does not apply these header rules.
+Use `wrangler dev` to check Workers rules locally.
 
 ## Keyboard
 
@@ -333,7 +353,7 @@ pnpm install
 pnpm dev
 ```
 
-Build a static bundle — it is plain files, host it anywhere or open it from disk:
+Build a static bundle, then serve it over HTTP or HTTPS:
 
 ```bash
 pnpm build
@@ -378,16 +398,15 @@ paths (what every other tool expects), which is why moving a note fixes its own
 
 Three browser-run suites, dev only:
 
-- `/superbrain/dev/fs-check.html` — exercises the File System Access backend against OPFS, which
+- `/dev/fs-check.html` — exercises the File System Access backend against OPFS, which
   implements the same handle API without needing a native folder picker.
-- `/superbrain/dev/link-check.html` — unit checks for link extraction, resolution, rewriting,
+- `/dev/link-check.html` — unit checks for link extraction, resolution, rewriting,
   relative paths and frontmatter.
-- `/superbrain/dev/contrast-check.html` — reads the real CSS custom properties for each theme and
+- `/dev/contrast-check.html` — reads the real CSS custom properties for each theme and
   checks every text/background and border pairing the UI uses, plus the geometry of the
   theme reveal.
 
-Open them with the dev server running. The `/superbrain/` prefix is the `base` from
-`vite.config.ts`; Vite serves the whole app under it, in dev as well as in the build.
+Open them with the dev server running.
 
 ## Locking a vault
 

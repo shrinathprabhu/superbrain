@@ -1,0 +1,15 @@
+# Cloudflare Workers Static Assets. Git build settings are in README.md.
+name = "superbrain"
+compatibility_date = "2026-09-15"
+workers_dev = true
+preview_urls = true
+
+[[routes]]
+pattern = "superbrain.lowkey.tools"
+custom_domain = true
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+# Note and folder paths belong to the app; do not normalize them as HTML files.
+html_handling = "none"

@@ -9,7 +9,7 @@
       name="description"
       content="Superbrain is a free markdown notes app that runs entirely in your browser. Open a folder of .md files, edit with backlinks, tags and a graph view, and keep every note on your own machine. No account, no server, works offline."
     />
-    <link rel="canonical" href="https://lowkey.tools/superbrain" />
+    <link rel="canonical" href="https://superbrain.lowkey.tools/" />
     <link rel="author" href="https://shrinath.me" />
 
     <!-- Every note route serves this same shell, so they all point back at one
@@ -30,8 +30,9 @@
       property="og:description"
       content="Open a folder of markdown files and get a real notebook: editing, backlinks, tags, comments and a graph of how everything connects. Nothing is uploaded, and it works offline."
     />
-    <meta property="og:url" content="https://lowkey.tools/superbrain" />
-    <meta property="og:image" content="https://lowkey.tools/superbrain/og.png" />
+    <meta property="og:url" content="https://superbrain.lowkey.tools/" />
+    <meta property="og:image" content="https://superbrain.lowkey.tools/og.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
@@ -40,13 +41,16 @@
     />
     <meta property="og:locale" content="en_US" />
 
+    <meta name="twitter:creator" content="@shrinath_prabhu" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Superbrain: local-first markdown notes in your browser" />
     <meta
       name="twitter:description"
       content="Open a folder of markdown files and get a real notebook: editing, backlinks, tags, comments and a graph view. Nothing is uploaded, and it works offline."
     />
-    <meta name="twitter:image" content="https://lowkey.tools/superbrain/og.png" />
+    <meta name="twitter:image" content="https://superbrain.lowkey.tools/og.png" />
+
+    <meta name="twitter:image:alt" content="Superbrain: local-first markdown notes in your browser. by @shrinath_prabhu." />
 
     <meta name="apple-mobile-web-app-title" content="Superbrain" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -57,17 +61,17 @@
 
     <!-- One @graph rather than several scripts, so the app, its source and the
          people behind it are linked nodes instead of three unrelated claims.
-         The FAQ is here because answer engines quote it directly. -->
+         The FAQ provides a structured summary for crawlers. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "WebApplication",
-            "@id": "https://lowkey.tools/superbrain#app",
+            "@id": "https://superbrain.lowkey.tools/#app",
             "name": "Superbrain",
             "alternateName": "Superbrain Notes",
-            "url": "https://lowkey.tools/superbrain",
+            "url": "https://superbrain.lowkey.tools/",
             "description": "A local-first markdown notes app that runs entirely in the browser. Import a folder of .md files or a .zip, edit with backlinks, tags, comments and a graph view, and keep every note either in browser storage or in a folder on your own computer. No account, no server, works offline.",
             "applicationCategory": "ProductivityApplication",
             "applicationSubCategory": "Note-taking",
@@ -92,21 +96,28 @@
               "Export a single note as self-contained HTML, or a whole vault as a .zip",
               "Installable as a PWA and fully usable offline"
             ],
-            "screenshot": "https://lowkey.tools/superbrain/og.png",
-            "image": "https://lowkey.tools/superbrain/og.png",
+            "screenshot": "https://superbrain.lowkey.tools/og.png",
+            "image": "https://superbrain.lowkey.tools/og.png",
             "license": "https://github.com/shrinathprabhu/superbrain",
             "codeRepository": "https://github.com/shrinathprabhu/superbrain",
             "author": { "@id": "https://shrinath.me#person" },
             "creator": { "@id": "https://owleye.dev#org" },
             "publisher": { "@id": "https://owleye.dev#org" },
+            "isPartOf": { "@id": "https://lowkey.tools/#website" },
             "sameAs": ["https://github.com/shrinathprabhu/superbrain"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://lowkey.tools/#website",
+            "name": "lowkey.tools",
+            "url": "https://lowkey.tools/"
           },
           {
             "@type": "Person",
             "@id": "https://shrinath.me#person",
             "name": "Shrinath Prabhu",
             "url": "https://shrinath.me",
-            "sameAs": ["https://github.com/shrinathprabhu"],
+            "sameAs": ["https://github.com/shrinathprabhu", "https://x.com/shrinath_prabhu"],
             "worksFor": { "@id": "https://owleye.dev#org" }
           },
           {
@@ -119,7 +130,7 @@
           },
           {
             "@type": "FAQPage",
-            "@id": "https://lowkey.tools/superbrain#faq",
+            "@id": "https://superbrain.lowkey.tools/#faq",
             "mainEntity": [
               {
                 "@type": "Question",
