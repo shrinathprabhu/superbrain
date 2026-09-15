@@ -1,4 +1,4 @@
-# Cloudflare Workers Static Assets / Netlify cache rules.
+# Cloudflare Workers Static Assets cache rules.
 # Avoid a wildcard Cache-Control default: overlapping header values are joined.
 # Unmatched note routes use the static asset service's default revalidation policy.
 

@@ -210,7 +210,6 @@ unknown paths**. Without that, a deep link 404s on the server before the app eve
 | Host | Config |
 |---|---|
 | `pnpm dev` / `pnpm preview` | works out of the box |
-| Netlify | `public/_redirects` (already in the repo) |
 | Cloudflare Workers | `wrangler.toml`, `public/_headers`, and `pnpm build:workers` |
 | nginx | `try_files $uri /index.html;` |
 | Caddy | `try_files {path} /index.html` |
@@ -261,8 +260,8 @@ See [Cloudflare's custom-domain setup](https://developers.cloudflare.com/workers
 The canonical remains `https://superbrain.lowkey.tools/` on both the custom domain
 and preview URLs.
 
-`pnpm build:workers` runs the normal production build and removes the Netlify
-`_redirects` file from `dist`. Workers serves the files through Static Assets;
+`pnpm build:workers` is an alias for `pnpm build`; both produce the same deployment
+output. No `_redirects` file is shipped. Workers serves the files through Static Assets;
 `not_found_handling = "single-page-application"` returns the app shell for note URLs
 such as `/Projects/Ideas.md`. `html_handling = "none"` preserves note and folder paths
 without HTML redirects. No Worker script, database or runtime secrets are required.
