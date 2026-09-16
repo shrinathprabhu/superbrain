@@ -6,10 +6,10 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { VaultProvider } from './store/vault'
 import { watchSystemTheme } from './lib/theme'
 // Geist, self-hosted through Fontsource so it works offline like everything else.
-import '@fontsource-variable/geist'
-import '@fontsource-variable/geist-mono'
+import './fonts.css'
 import './styles.css'
 
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('perf')) void import('../dev/performance')
 registerSW({ immediate: true })
 watchSystemTheme()
 

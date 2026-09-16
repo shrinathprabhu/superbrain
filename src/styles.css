@@ -288,15 +288,15 @@ kbd {
 .menu-sep { height: 1px; background: var(--border-soft); margin: 4px 2px; }
 
 /* -------------------------------------------------------------------- main */
-.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .empty-main { flex: 1; display: grid; place-content: center; gap: 12px; justify-items: center; color: var(--text-dim); }
 
 .note-head {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px; border-bottom: 1px solid var(--border-soft);
 }
-.breadcrumb { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; font-size: 12px; }
-.crumb { background: none; border: 0; padding: 1px 4px; cursor: pointer; color: var(--text-faint); border-radius: 4px; }
+.breadcrumb { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; overflow: auto; white-space: nowrap; font-size: 12px; }
+.crumb { flex: none; background: none; border: 0; padding: 1px 4px; cursor: pointer; color: var(--text-faint); border-radius: 4px; }
 .crumb:hover { background: var(--bg-hover); color: var(--text); }
 .crumb.current { color: var(--text); font-weight: 600; }
 .crumb-sep { color: var(--text-faint); opacity: 0.5; }
@@ -525,7 +525,7 @@ kbd {
 .graph-bar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .graph-count { color: var(--text-faint); }
 .graph-bar .ghost { margin-left: auto; }
-.graph-canvas { flex: 1; width: 100%; display: block; cursor: grab; background: var(--bg-sunken); }
+.graph-canvas { flex: 1; min-height: 0; height: 0; width: 100%; display: block; cursor: grab; background: var(--bg-sunken); }
 .graph-legend {
   position: absolute; left: 12px; bottom: 12px;
   display: flex; gap: 12px; font-size: 11px; color: var(--text-faint);
@@ -1363,7 +1363,7 @@ kbd {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 /* Two choices, so they get room to breathe rather than a thin third column. */
-.start-grid.two { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.start-grid.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
 .start-card {
   display: grid; gap: 3px; align-content: start; text-align: left;
   padding: 16px; cursor: pointer; font: inherit;
@@ -1442,3 +1442,28 @@ kbd {
   .outline-link { padding: 8px; }
   .panel-tab { padding: 9px 6px; }
 }
+
+/* Keep viewport geometry stable while content, scrollbars and save status change. */
+:root { --context-width: 300px; --document-width: 760px; }
+html { scrollbar-gutter: stable; }
+.startup { min-height: 100%; display: grid; place-content: center; color: var(--text-faint); }
+.save-state { width: 112px; flex: 0 0 112px; text-align: right; text-overflow: ellipsis; }
+.note-head { min-height: 41px; flex: none; }
+.editor-scroll, .folder-view, .asset-view, .panel-body, .tree { scrollbar-gutter: stable; }
+.prose, .properties { max-width: var(--document-width); }
+.side-panel-slot { width: var(--context-width); flex: none; display: flex; min-height: 0; border-left: 1px solid var(--border-soft); background: var(--bg-raised); }
+.side-panel-slot .side-panel { width: 100%; min-width: 0; border-left: 0; }
+.graph-bar { flex: none; flex-wrap: wrap; }
+.graph-error { position: absolute; top: 60px; left: 16px; right: 16px; color: var(--text-dim); }
+.view-switch button, .panel-tab, .trash-link { transition: color var(--fast) ease, background-color var(--fast) ease; }
+.panel-body { animation: fade-in 160ms ease; }
+@media (max-width: 1100px) { :root { --context-width: 260px; } }
+@media (max-width: 900px) { .side-panel-slot { display: none; } }
+
+/* Markdown does not provide intrinsic dimensions. Reserve a preview frame
+   before local bytes / remote media arrive; contain preserves the full image. */
+.visual-media > img, .visual-media > video, .visual-media > .asset-missing {
+  width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain;
+  overflow: hidden; background: var(--bg-raised);
+}
+.visual-media > .asset-missing { justify-content: center; overflow-wrap: anywhere; }

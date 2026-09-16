@@ -31,7 +31,7 @@ export default function MediaView({ node, selected }: NodeViewProps) {
 
   const hit = EXTERNAL.test(src) ? null : env.resolve(src)
   const kind = assetClass(hit?.mime, hit?.name ?? src)
-  const cls = `media-host${selected ? ' selected' : ''}`
+  const cls = `media-host${kind === 'image' || kind === 'video' || kind === 'file' ? ' visual-media' : ''}${selected ? ' selected' : ''}`
 
   if (missing || !url) {
     return (
@@ -41,6 +41,7 @@ export default function MediaView({ node, selected }: NodeViewProps) {
           <span>{hit ? 'Bytes not loaded in this session' : 'File not found in this vault'}</span>
           <code>{src}</code>
         </div>
+        {alt && <span className="media-caption">{alt}</span>}
       </NodeViewWrapper>
     )
   }
@@ -54,7 +55,7 @@ export default function MediaView({ node, selected }: NodeViewProps) {
       ) : kind === 'pdf' ? (
         <iframe src={url} title={alt || src} className="pdf-embed" />
       ) : (
-        <img src={url} alt={alt} title={String(node.attrs.title ?? '')} />
+        <img decoding="async" src={url} alt={alt} title={String(node.attrs.title ?? '')} />
       )}
       {alt && <span className="media-caption">{alt}</span>}
     </NodeViewWrapper>

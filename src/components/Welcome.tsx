@@ -25,6 +25,7 @@ function ago(ts: number): string {
 export default function Welcome() {
   const store = useStore()
   const state = useVault()
+  const [recentReady, setRecentReady] = useState(false)
   const [recent, setRecent] = useState<VaultRef[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -37,7 +38,7 @@ export default function Welcome() {
   /* Held only between a password prompt and the dialog it leads into. */
   const unlocked = useRef<string | null>(null)
 
-  const refreshRecent = () => { void store.recentVaults().then(setRecent) }
+  const refreshRecent = () => { void store.recentVaults().then(setRecent).catch(() => {}).finally(() => setRecentReady(true)) }
 
   /**
    * Run an action on a vault, asking for the password first when it is locked.
@@ -142,6 +143,8 @@ export default function Welcome() {
       setBusy(null)
     }
   }
+
+  if (!recentReady) return <div className="startup" role="status">Opening your workspace…</div>
 
   return (
     <div

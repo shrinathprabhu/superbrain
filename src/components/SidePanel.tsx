@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLinkGraph, useStore, useVault } from '../store/vault'
 import { cx, titleOf } from '../lib/util'
 import { excerpt, headings } from '../lib/markdown'
-import { tldr } from '../lib/tldr'
+import type { TldrResult } from '../lib/tldr'
 
 type Tab = 'comments' | 'links' | 'outline' | 'tldr'
 
@@ -225,13 +225,35 @@ function Outline({ noteId }: { noteId: string }) {
  */
 function Tldr({ noteId }: { noteId: string }) {
   const store = useStore()
-  const state = useVault()
+  useVault()
   const [limit, setLimit] = useState(5)
-  const result = useMemo(
-    () => tldr(store.body(noteId), limit),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [noteId, limit, state.rev],
-  )
+  const markdown = store.body(noteId)
+  const [summary, setSummary] = useState<{ markdown: string; limit: number; result: TldrResult } | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let worker: Worker | undefined
+    setFailed(false)
+    // Debounce edits; cleanup also cancels an expensive obsolete calculation.
+    const timer = window.setTimeout(() => {
+      try {
+        worker = new Worker(new URL('../workers/tldr.worker.ts', import.meta.url), { type: 'module' })
+        worker.onmessage = ({ data }: MessageEvent<TldrResult>) => {
+          setSummary({ markdown, limit, result: data })
+          worker?.terminate()
+        }
+        worker.onerror = () => { setFailed(true); worker?.terminate() }
+        worker.postMessage({ markdown, limit })
+      } catch { setFailed(true) }
+    }, 180)
+    return () => { window.clearTimeout(timer); worker?.terminate() }
+  }, [markdown, limit])
+
+  if (failed) return <p className="panel-empty" role="status">Could not build this summary. Try reopening TL;DR.</p>
+  if (!summary || summary.markdown !== markdown || summary.limit !== limit) {
+    return <p className="panel-empty" role="status">Summarising on this device…</p>
+  }
+  const result = summary.result
 
   if (!result.points.length) {
     return <p className="panel-empty">Not enough prose in this note to summarise yet.</p>

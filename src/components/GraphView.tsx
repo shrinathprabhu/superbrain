@@ -3,9 +3,7 @@ import { useLinkGraph, useStore, useVault } from '../store/vault'
 import { useResolvedTheme } from '../lib/theme'
 import { graphEdges } from '../lib/links'
 import { titleOf } from '../lib/util'
-import type { VaultNode } from '../lib/types'
-
-interface Body { id: string; label: string; kind: VaultNode['kind']; x: number; y: number; vx: number; vy: number; r: number }
+import type { GraphBody as Body, GraphRequest, GraphFrame } from '../lib/graph-worker'
 
 /** Read once from the page so the canvas matches the rest of the UI. */
 const FONT_STACK =
@@ -64,12 +62,15 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
 
   const view = useRef({ x: 0, y: 0, k: 1 })
   const bodies = useRef(new Map<string, Body>())
-  const alpha = useRef(1)
+  const invalidate = useRef<() => void>(() => {})
+  const send = useRef<(message: GraphRequest) => void>(() => {})
+  const [layoutFailed, setLayoutFailed] = useState(false)
 
   const { nodes, edges } = useMemo(() => {
     const all = state.nodes.filter(n => !n.deletedAt && (showFolders || n.kind !== 'folder'))
+    const ids = new Set(all.map(n => n.id))
     const edgeList = graphEdges(all, links, showFolders)
-      .filter(e => all.some(n => n.id === e.source) && all.some(n => n.id === e.target))
+      .filter(e => ids.has(e.source) && ids.has(e.target))
     const degree = new Map<string, number>()
     for (const e of edgeList) {
       degree.set(e.source, (degree.get(e.source) ?? 0) + 1)
@@ -100,7 +101,6 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
       })
     })
     bodies.current = next
-    alpha.current = 1
   }, [nodes])
 
   const neighbours = useMemo(() => {
@@ -118,6 +118,45 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
     const ctx = canvas.getContext('2d')!
     let raf = 0
     let running = true
+    let pending = false
+    let active = true
+    let reheated = false
+    let worker: Worker | undefined
+    const schedule = () => {
+      if (running && !document.hidden && !raf) raf = requestAnimationFrame(step)
+    }
+    invalidate.current = schedule
+    try {
+      worker = new Worker(new URL('../workers/graph.worker.ts', import.meta.url), { type: 'module' })
+      worker.onmessage = ({ data }: MessageEvent<GraphFrame>) => {
+        pending = false
+        active = data.active || reheated
+        reheated = false
+        let i = 0
+        for (const body of bodies.current.values()) {
+          body.x = data.positions[i++]
+          body.y = data.positions[i++]
+        }
+        schedule()
+      }
+      worker.onerror = () => {
+        active = false
+        pending = false
+        worker?.terminate()
+        setLayoutFailed(true)
+        schedule()
+      }
+      send.current = message => {
+        worker?.postMessage(message)
+        if (message.type === 'move' || message.type === 'reheat') { active = true; reheated = true }
+        schedule()
+      }
+      send.current({ type: 'init', bodies: [...bodies.current.values()], edges })
+      setLayoutFailed(false)
+    } catch {
+      active = false
+      setLayoutFailed(true)
+    }
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1
@@ -125,59 +164,16 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
       canvas.width = Math.max(1, Math.floor(box.width * dpr))
       canvas.height = Math.max(1, Math.floor(box.height * dpr))
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      schedule()
     }
-    resize()
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
 
-    const step = () => {
+    function step() {
+      raf = 0
       const list = [...bodies.current.values()]
-      const a = alpha.current
-      if (a > 0.002) {
-        const k = 90
-        for (let i = 0; i < list.length; i++) {
-          const p = list[i]
-          for (let j = i + 1; j < list.length; j++) {
-            const q = list[j]
-            let dx = q.x - p.x
-            let dy = q.y - p.y
-            let d2 = dx * dx + dy * dy
-            if (d2 < 1) { dx = (Math.random() - 0.5) * 2; dy = (Math.random() - 0.5) * 2; d2 = 4 }
-            if (d2 > 900_000) continue
-            const force = (k * k) / d2
-            const d = Math.sqrt(d2)
-            const fx = (dx / d) * force
-            const fy = (dy / d) * force
-            p.vx -= fx; p.vy -= fy
-            q.vx += fx; q.vy += fy
-          }
-        }
-        for (const e of edges) {
-          const s = bodies.current.get(e.source)
-          const t = bodies.current.get(e.target)
-          if (!s || !t) continue
-          const dx = t.x - s.x
-          const dy = t.y - s.y
-          const d = Math.max(1, Math.hypot(dx, dy))
-          const strength = e.type === 'contains' ? 0.012 : 0.02
-          const force = (d - (e.type === 'contains' ? 70 : 130)) * strength
-          const fx = (dx / d) * force
-          const fy = (dy / d) * force
-          s.vx += fx; s.vy += fy
-          t.vx -= fx; t.vy -= fy
-        }
-        for (const p of list) {
-          p.vx -= p.x * 0.004
-          p.vy -= p.y * 0.004
-          p.vx *= 0.82
-          p.vy *= 0.82
-          p.x += p.vx * a
-          p.y += p.vy * a
-        }
-        alpha.current = a * 0.985
-      }
 
-      const box = canvas.getBoundingClientRect()
+      const box = canvas!.getBoundingClientRect()
       const { x: ox, y: oy, k: scale } = view.current
       const cx = box.width / 2 + ox
       const cy = box.height / 2 + oy
@@ -232,16 +228,30 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
         ctx.globalAlpha = 1
       }
 
-      if (running) raf = requestAnimationFrame(step)
+      if (active && !pending && worker) {
+        pending = true
+        worker.postMessage({ type: 'tick' } satisfies GraphRequest)
+      }
     }
-    raf = requestAnimationFrame(step)
-    return () => { running = false; cancelAnimationFrame(raf); ro.disconnect() }
-  }, [edges, neighbours])
+    resize()
+    document.addEventListener('visibilitychange', schedule)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+      worker?.terminate()
+      ro.disconnect()
+      document.removeEventListener('visibilitychange', schedule)
+      invalidate.current = () => {}
+      send.current = () => {}
+    }
+  }, [nodes, edges, neighbours])
+
+  useEffect(() => { invalidate.current() }, [hover, palette, state.activeId])
 
   const pick = (clientX: number, clientY: number): string | null => {
     const canvas = canvasRef.current
     if (!canvas) return null
-    const box = canvas.getBoundingClientRect()
+    const box = canvas!.getBoundingClientRect()
     const { x: ox, y: oy, k } = view.current
     const mx = clientX - box.left - box.width / 2 - ox
     const my = clientY - box.top - box.height / 2 - oy
@@ -261,7 +271,7 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
         <label><input type="checkbox" checked={showFolders} onChange={e => setShowFolders(e.target.checked)} /> Folders</label>
         <label><input type="checkbox" checked={showOrphans} onChange={e => setShowOrphans(e.target.checked)} /> Unlinked</label>
         <span className="graph-count">{nodes.length} nodes · {edges.length} links</span>
-        <button type="button" className="ghost" onClick={() => { view.current = { x: 0, y: 0, k: 1 }; alpha.current = 1 }}>Reset view</button>
+        <button type="button" className="ghost" onClick={() => { view.current = { x: 0, y: 0, k: 1 }; send.current({ type: 'reheat' }) }}>Reset view</button>
       </div>
       <canvas
         ref={canvasRef}
@@ -274,6 +284,7 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
           if (drag.current && !drag.current.node) {
             view.current.x = drag.current.ox + (e.clientX - drag.current.x)
             view.current.y = drag.current.oy + (e.clientY - drag.current.y)
+            invalidate.current()
             return
           }
           if (drag.current?.node) {
@@ -283,7 +294,7 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
               body.x = (e.clientX - box.left - box.width / 2 - view.current.x) / view.current.k
               body.y = (e.clientY - box.top - box.height / 2 - view.current.y) / view.current.k
               body.vx = body.vy = 0
-              alpha.current = Math.max(alpha.current, 0.25)
+              send.current({ type: 'move', id: body.id, x: body.x, y: body.y })
             }
             return
           }
@@ -305,8 +316,10 @@ export default function GraphView({ onOpen }: { onOpen: (id: string) => void }) 
         onWheel={e => {
           const factor = Math.exp(-e.deltaY * 0.0015)
           view.current.k = Math.min(4, Math.max(0.15, view.current.k * factor))
+          invalidate.current()
         }}
       />
+      {layoutFailed && <p className="graph-error" role="status">Graph layout is unavailable. You can still open nodes or reset the view.</p>}
       <div className="graph-legend">
         <span><i style={{ background: palette.note }} /> Note</span>
         <span><i style={{ background: palette.folder }} /> Folder</span>

@@ -492,3 +492,24 @@ pnpm icons
   by design.
 - `.markdown`, `.mdx` and `.txt` are no longer accepted as notes; only `.md` is.
 - A folder named `_superbrain` at the vault root would collide with the build output's URLs.
+
+### Layout and responsiveness checks
+
+Notes, Graph and Trash share the same main-column width. The desktop context
+column stays reserved when switching views; below 901px it is hidden. Scrollbar
+space and media preview frames are reserved, and the local fonts use optional
+display with the main Latin face preloaded to avoid late font swaps. Existing
+reduced-motion preferences also apply to the short UI transitions.
+
+Graph physics and TL;DR ranking run in local Web Workers. Graph frames stop when
+the simulation settles or the document is hidden; obsolete summaries are
+cancelled when their input changes. These workers are bundled and precached for
+offline use.
+
+For local checks, run `pnpm dev` and open `/dev/worker-check.html` for worker
+regressions. Opening the app with `?perf` enables local counters in the
+`data-performance` attribute on `<html>`: cumulative unexpected layout shifts,
+long-task count and longest task. Nothing is sent anywhere; these diagnostics
+are excluded from production. Use a fresh local origin if an older production
+service worker is cached on the development URL. Verify large vaults separately:
+editor parsing, link indexing and canvas drawing still use the main thread.

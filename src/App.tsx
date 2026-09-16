@@ -8,7 +8,7 @@ import SidePanel from './components/SidePanel'
 import AssetView from './components/AssetView'
 import QuickSwitcher from './components/QuickSwitcher'
 import CommentDialog from './components/CommentDialog'
-import NoteEditor from './editor/NoteEditor'
+const NoteEditor = lazy(() => import('./editor/NoteEditor'))
 
 // The graph and the zip writer are only needed on demand; keeping them out of
 // the first paint saves the reader ~60 kB they may never use.
@@ -35,6 +35,8 @@ type View = 'note' | 'graph' | 'trash'
 export default function App() {
   const store = useStore()
   const state = useVault()
+  const [restoring, setRestoring] = useState(true)
+  const restore = useRef<Promise<void> | null>(null)
   const [view, setView] = useState<View>('note')
   const [filter, setFilter] = useState('')
   const [tag, setTag] = useState<string | null>(null)
@@ -82,8 +84,9 @@ export default function App() {
   // Pick up where the last session left off: re-attach to the folder if the
   // permission is still live, otherwise reopen the browser-storage notebook.
   useEffect(() => {
-    if (state.status !== 'idle') return
-    void (async () => {
+    // Share the first restore across StrictMode's effect replay. Closing a vault
+    // later must stay on the welcome screen, not trigger another restore.
+    restore.current ??= (async () => {
       const mode = await lastUsedMode()
       if (!mode) return
       if (mode === 'fs' && HAS_FS_ACCESS) {
@@ -94,7 +97,10 @@ export default function App() {
         if (last) await store.openVault(last)
       }
     })()
-  }, [state.status, store])
+    let live = true
+    void restore.current.catch(() => { /* Welcome remains available if storage is unavailable. */ }).finally(() => { if (live) setRestoring(false) })
+    return () => { live = false }
+  }, [store])
 
   useEffect(() => {
     if (folderImportInput.current) folderImportInput.current.setAttribute('webkitdirectory', '')
@@ -341,6 +347,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [store])
 
+  if (restoring) return <div className="startup" role="status">Opening your workspace…</div>
   if (state.status === 'locked') return <UnlockScreen />
   if (state.status !== 'ready') return <Welcome />
 
@@ -410,7 +417,7 @@ export default function App() {
             <button
               type="button"
               className={cx('trash-link', view === 'trash' && 'on')}
-              onClick={() => guarded(() => setView('trash'))}
+              onClick={() => guarded(() => { setView('trash'); if (narrow) setSidebarOpen(false) })}
             >
               <span aria-hidden="true">🗑</span>
               Trash
@@ -508,20 +515,35 @@ export default function App() {
               ) : active.kind === 'asset' ? (
                 <AssetView node={active} />
               ) : (
-                <NoteEditor
-                  key={active.id}
-                  noteId={active.id}
-                  onOpen={open}
-                  onRequestComment={setPendingComment}
-                  onMissingLink={setMissingLink}
-                />
+                <Suspense fallback={
+                  <>
+                    <div className="read-bar" aria-hidden="true">
+                      <span className="read-hint">Reading</span>
+                      <button type="button" className="ghost small" disabled>Edit note</button>
+                    </div>
+                    <div className="editor-scroll editor-loading" role="status">Opening note…</div>
+                  </>
+                }>
+                  <NoteEditor
+                    key={active.id}
+                    noteId={active.id}
+                    onOpen={open}
+                    onRequestComment={setPendingComment}
+                    onMissingLink={setMissingLink}
+                  />
+                </Suspense>
               )}
             </>
           )}
         </main>
 
-        {view === 'note' && panelOpen && !missing && active?.kind === 'note' && (
-          <SidePanel noteId={active.id} onOpen={open} />
+        {/* Reserve the same context column across all three views. */}
+        {panelOpen && (
+          <div className="side-panel-slot">
+            {view === 'note' && !missing && active?.kind === 'note' && (
+              <SidePanel noteId={active.id} onOpen={open} />
+            )}
+          </div>
         )}
       </div>
 

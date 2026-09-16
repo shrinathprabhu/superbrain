@@ -28,7 +28,7 @@ export default function WikiLinkView({ node }: NodeViewProps) {
 
   if (embed && hit.kind === 'asset') {
     return (
-      <NodeViewWrapper as="span" className="embed-host">
+      <NodeViewWrapper as="span" className={`embed-host${['image', 'video'].includes(assetClass(hit.mime, hit.name)) ? ' visual-media' : ''}`}>
         <EmbeddedAsset id={hit.id} name={hit.name} mime={hit.mime} />
       </NodeViewWrapper>
     )
@@ -73,7 +73,7 @@ function EmbeddedAsset({ id, name, mime }: { id: string; name: string; mime?: st
 
   const kind = assetClass(mime, name)
   if (!url) return <div className="asset-missing" contentEditable={false}>Bytes for “{name}” aren’t loaded. <em>Re-link the file to see it.</em></div>
-  if (kind === 'image') return <img src={url} alt={name} contentEditable={false} />
+  if (kind === 'image') return <img decoding="async" src={url} alt={name} contentEditable={false} />
   if (kind === 'video') return <video src={url} controls contentEditable={false} />
   if (kind === 'audio') return <audio src={url} controls contentEditable={false} />
   if (kind === 'pdf') return <iframe src={url} title={name} className="pdf-embed" contentEditable={false} />
