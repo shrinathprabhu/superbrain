@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@11.1.3",
   "description": "Local-first markdown notes: Notion-ish editing, Obsidian-ish linking, zero server.",
   "scripts": {
     "dev": "vite",

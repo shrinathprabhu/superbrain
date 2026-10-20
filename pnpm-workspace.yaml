@@ -1,4 +1,13 @@
+# Not a monorepo: this single entry exists because pnpm 9 — the version
+# Cloudflare's build image picks by default — refuses a workspace file that has
+# no `packages` field, and this file has to exist to carry the setting below.
+packages:
+  - .
+
+# esbuild (via Vite) runs a postinstall script, which pnpm blocks by default;
+# an install that leaves it blocked exits non-zero and fails the build.
+# `onlyBuiltDependencies` is kept for older pnpm, which does not read allowBuilds.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
 onlyBuiltDependencies:
   - esbuild
