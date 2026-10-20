@@ -47,5 +47,3 @@
 /
   Cache-Control: public, max-age=0, must-revalidate
 
-/registerSW.js
-  Cache-Control: public, max-age=0, must-revalidate

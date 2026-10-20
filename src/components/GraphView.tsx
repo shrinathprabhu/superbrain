@@ -13,7 +13,7 @@ const FONT_STACK =
     : 'system-ui, sans-serif'
 
 interface Palette {
-  note: string; folder: string; asset: string; open: string
+  note: string; folder: string; asset: string; table: string; open: string
   edge: string; edgeSoft: string; label: string; highlight: string
 }
 
@@ -25,6 +25,7 @@ function readPalette(): Palette {
     note: get('--graph-note', '#6c95f5'),
     folder: get('--graph-folder', '#ebb867'),
     asset: get('--graph-asset', '#a8dc79'),
+    table: get('--graph-table', '#7fd4c1'),
     open: get('--graph-open', '#ff8098'),
     edge: get('--graph-edge', 'rgba(160,175,200,0.34)'),
     edgeSoft: get('--graph-edge-soft', 'rgba(160,175,200,0.09)'),

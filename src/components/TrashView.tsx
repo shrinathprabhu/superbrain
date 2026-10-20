@@ -5,12 +5,13 @@ import { assetClass, titleOf } from '../lib/util'
 import type { VaultNode } from '../lib/types'
 
 const ICONS: Record<string, string> = {
-  folder: '🗀', note: '📄', image: '🖼', video: '🎬', audio: '🎵', pdf: '📕', file: '📎',
+  folder: '🗀', note: '📄', table: '🗂', image: '🖼', video: '🎬', audio: '🎵', pdf: '📕', file: '📎',
 }
 
 function iconFor(node: VaultNode): string {
   if (node.kind === 'folder') return ICONS.folder
   if (node.kind === 'note') return ICONS.note
+  if (node.kind === 'table') return ICONS.table
   return ICONS[assetClass(node.mime, node.name)] ?? ICONS.file
 }
 

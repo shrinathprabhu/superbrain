@@ -322,13 +322,19 @@ Workers applies these rules to [static asset responses](https://developers.cloud
 | Hashed `/_superbrain/*` and `/workbox-*.js` | Immutable for one year |
 | Fixed-name icons | One day, then revalidate |
 | `/og.png` | One day |
-| `/manifest.webmanifest`, `/sw.js`, `/registerSW.js` | Revalidate on each request |
+| `/manifest.webmanifest`, `/sw.js` | Revalidate on each request |
 | `/`, `/index.html`, `/robots.txt`, `/sitemap.xml`, `/llms.txt` | Revalidate on each request |
 
-The manifest and service-worker registration must stay fresh so updates to the PWA's
-root scope and entry point reach returning visitors. Verify hosted response headers
-after deployment; a local Vite preview does not apply these header rules.
-Use `wrangler dev` to check Workers rules locally.
+The manifest and service worker must stay fresh so updates to the PWA's root scope and
+entry point reach returning visitors. Verify hosted response headers after deployment;
+a local Vite preview does not apply these header rules. Use `wrangler dev` to check
+Workers rules locally.
+
+Updates are offered, never forced. A new worker installs and waits; the app checks
+hourly, and whenever a backgrounded tab is refocused or the network returns, then
+prompts. Taking the update goes through the same unsaved-edit question as any other
+interruption, because note bodies live in memory until an explicit save. See
+`src/lib/sw.ts`.
 
 ## Keyboard
 

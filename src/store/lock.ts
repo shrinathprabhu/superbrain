@@ -1,6 +1,7 @@
 import { idb } from '../lib/idb'
 import { createLock, decrypt, encrypt, unlockKey, type Envelope, type LockRecord } from '../lib/crypto'
 import type { VaultMeta } from '../lib/types'
+import { isTextKind } from '../lib/util'
 
 /**
  * Locking a browser notebook: everything it holds is encrypted with a key
@@ -42,7 +43,7 @@ export async function lockVault(
   onProgress?: LockProgress,
 ): Promise<void> {
   const { key, lock } = await createLock(password)
-  const noteIds = meta.nodes.filter(n => n.kind === 'note').map(n => n.id)
+  const noteIds = meta.nodes.filter(n => isTextKind(n.kind)).map(n => n.id)
   const total = noteIds.length + 1
 
   // Encrypt note bodies first, verifying each one before the plaintext goes.
@@ -96,7 +97,7 @@ export async function unlockVault(
   if (metaJson === null) throw new Error('The encrypted index could not be read.')
   const meta = JSON.parse(metaJson) as VaultMeta
 
-  const noteIds = meta.nodes.filter(n => n.kind === 'note').map(n => n.id)
+  const noteIds = meta.nodes.filter(n => isTextKind(n.kind)).map(n => n.id)
   const total = noteIds.length + 1
 
   // Decrypt everything before removing any ciphertext, so a failure half way
@@ -134,7 +135,7 @@ export async function purgeVaultStorage(storageKey: string): Promise<number> {
   const plain = await idb.get<VaultMeta>('meta', storageKey)
   const locked = await idb.get<LockRecord & { noteIds?: string[] }>('kv', lockKey(storageKey))
   const ids = plain
-    ? plain.nodes.filter(n => n.kind === 'note').map(n => n.id)
+    ? plain.nodes.filter(n => isTextKind(n.kind)).map(n => n.id)
     : (locked?.noteIds ?? [])
 
   for (const id of ids) await idb.del('notes', id)
@@ -171,7 +172,7 @@ export async function readLockedVault(
 
   const bodies = new Map<string, string>()
   for (const node of meta.nodes) {
-    if (node.kind !== 'note' || node.deletedAt) continue
+    if (!isTextKind(node.kind) || node.deletedAt) continue
     const stored = await idb.get<Envelope>('notes', node.id)
     bodies.set(node.id, stored ? ((await decrypt(key, stored)) ?? '') : '')
   }

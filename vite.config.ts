@@ -28,9 +28,23 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      /*
+       * Deliberately not 'autoUpdate'. That mode reloads the page the moment a
+       * new worker activates, and note bodies are held in memory until an
+       * explicit save, so a deploy landing mid-sentence would throw the edit
+       * away. The app asks instead, and applies the update once the editor says
+       * it is safe. See src/lib/sw.ts.
+       */
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       workbox: {
+        // The new worker waits. Taking over early would let cleanupOutdatedCaches
+        // drop the lazy chunks (NoteEditor, GraphView, export) that the running
+        // page has not imported yet, breaking them until a reload.
+        skipWaiting: false,
+        // Harmless with skipWaiting off, and it makes the very first visit
+        // offline-ready without waiting for a second navigation.
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // The social card is for crawlers and link unfurls, never for the app
         // itself. Precaching it would cost every visitor 57 kB they never see.

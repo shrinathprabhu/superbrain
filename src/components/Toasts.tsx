@@ -5,12 +5,15 @@ export interface Toast {
   id: string
   tone: 'info' | 'warn' | 'error'
   message: string
+  /** An offer attached to the toast. One that asks something waits for an answer. */
+  action?: { label: string; run: () => void }
 }
 
 export default function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
   useEffect(() => {
-    if (!toasts.length) return
-    const timers = toasts.map(t => setTimeout(() => onDismiss(t.id), t.tone === 'error' ? 12_000 : 7_000))
+    const expiring = toasts.filter(t => !t.action)
+    if (!expiring.length) return
+    const timers = expiring.map(t => setTimeout(() => onDismiss(t.id), t.tone === 'error' ? 12_000 : 7_000))
     return () => timers.forEach(clearTimeout)
   }, [toasts, onDismiss])
 
@@ -20,6 +23,9 @@ export default function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismi
       {toasts.map(t => (
         <div key={t.id} className={cx('toast', t.tone)}>
           <span>{t.message}</span>
+          {t.action && (
+            <button type="button" className="toast-action" onClick={t.action.run}>{t.action.label}</button>
+          )}
           <button type="button" aria-label="Dismiss" onClick={() => onDismiss(t.id)}>×</button>
         </div>
       ))}

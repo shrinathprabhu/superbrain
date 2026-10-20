@@ -9,7 +9,7 @@ import ConfirmDialog, { type ConfirmRequest } from './ConfirmDialog'
 type DropSpot = { id: string | null; where: 'before' | 'after' | 'inside' }
 
 const ICONS: Record<string, string> = {
-  note: '📄', image: '🖼', video: '🎬', audio: '🎵', pdf: '📕', file: '📎',
+  note: '📄', table: '🗂', image: '🖼', video: '🎬', audio: '🎵', pdf: '📕', file: '📎',
 }
 
 /**
@@ -35,6 +35,7 @@ function Caret() {
 function iconFor(node: VaultNode): React.ReactNode {
   if (node.kind === 'folder') return <Caret />
   if (node.kind === 'note') return ICONS.note
+  if (node.kind === 'table') return ICONS.table
   return ICONS[assetClass(node.mime, node.name)] ?? ICONS.file
 }
 

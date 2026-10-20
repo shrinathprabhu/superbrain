@@ -1,4 +1,8 @@
-export type NodeKind = 'folder' | 'note' | 'asset'
+/**
+ * `table` is a .csv: text on disk like a note, but shown as a read-only grid
+ * with review marks instead of an editor.
+ */
+export type NodeKind = 'folder' | 'note' | 'asset' | 'table'
 
 /** A single entry in the vault tree. Content lives outside the tree (see VaultAdapter). */
 export interface VaultNode {
@@ -28,11 +32,36 @@ export interface Comment {
   resolved: boolean
 }
 
+/** How a reviewer marked one row of a table. */
+export type ReviewStatus = 'done' | 'declined'
+
+/**
+ * A mark against one row of a .csv. The file itself is never written, so this
+ * is the only place the decision lives.
+ *
+ * Rows are addressed by position, header excluded. That holds because the app
+ * never reorders or edits a table; editing the file outside Superbrain can
+ * move marks onto neighbouring rows, which is why `fingerprint` is kept — it
+ * lets the view flag rows whose content no longer matches what was reviewed.
+ */
+export interface RowReview {
+  tableId: string
+  /** Index into the data rows, header excluded. */
+  row: number
+  status: ReviewStatus | null
+  comment: string
+  /** Cheap hash of the row as it read when the mark was made. */
+  fingerprint: string
+  updatedAt: number
+}
+
 /** Everything the app persists apart from note bodies and asset bytes. */
 export interface VaultMeta {
   version: 1
   nodes: VaultNode[]
   comments: Comment[]
+  /** Absent in vaults written before tables existed. */
+  reviews?: RowReview[]
 }
 
 export type StorageMode = 'fs' | 'idb'

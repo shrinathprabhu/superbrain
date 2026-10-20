@@ -1,7 +1,10 @@
+import type { NodeKind } from './types'
+
 export const uid = (): string =>
   (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36))
 
 export const MD_EXT = /\.md$/i
+export const CSV_EXT = /\.csv$/i
 
 /**
  * What a book will take in. Anything outside this list is refused at the door
@@ -12,15 +15,27 @@ export const ACCEPTED_IMAGE = ['webp', 'jpg', 'jpeg', 'avif', 'gif', 'png', 'svg
 export const ACCEPTED_VIDEO = ['mp4'] as const
 export const ACCEPTED_ASSET = new Set<string>([...ACCEPTED_IMAGE, ...ACCEPTED_VIDEO])
 
-/** Human-readable list for messages, e.g. ".md, .png, .jpg …". */
-export const ACCEPTED_SUMMARY = `.md, ${[...ACCEPTED_ASSET].map(e => `.${e}`).join(', ')}`
+/** Human-readable list for messages, e.g. ".md, .csv, .png, .jpg …". */
+export const ACCEPTED_SUMMARY = `.md, .csv, ${[...ACCEPTED_ASSET].map(e => `.${e}`).join(', ')}`
 
 /** Value for a file input's `accept`, so the picker filters before we have to. */
-export const ACCEPT_ATTR = `.md,${[...ACCEPTED_ASSET].map(e => `.${e}`).join(',')}`
+export const ACCEPT_ATTR = `.md,.csv,${[...ACCEPTED_ASSET].map(e => `.${e}`).join(',')}`
 export const ACCEPT_MEDIA_ATTR = [...ACCEPTED_ASSET].map(e => `.${e}`).join(',')
 
 export function isMarkdownFile(name: string): boolean {
   return MD_EXT.test(name)
+}
+
+export function isTableFile(name: string): boolean {
+  return CSV_EXT.test(name)
+}
+
+/**
+ * Kinds whose content is text and therefore lives in `bodies`, is written with
+ * writeNote, and is encrypted with the rest of a locked vault.
+ */
+export function isTextKind(kind: NodeKind): boolean {
+  return kind === 'note' || kind === 'table'
 }
 
 export function isAcceptedAsset(name: string): boolean {
@@ -29,7 +44,7 @@ export function isAcceptedAsset(name: string): boolean {
 
 /** True when a book will take this file at all. */
 export function isAccepted(name: string): boolean {
-  return isMarkdownFile(name) || isAcceptedAsset(name)
+  return isMarkdownFile(name) || isTableFile(name) || isAcceptedAsset(name)
 }
 
 /** Note title = file name without its markdown extension. */
@@ -49,7 +64,7 @@ const MIME_BY_EXT: Record<string, string> = {
   webp: 'image/webp', svg: 'image/svg+xml', avif: 'image/avif', mp4: 'video/mp4',
   bmp: 'image/bmp', webm: 'video/webm', mov: 'video/quicktime', m4v: 'video/mp4',
   mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', m4a: 'audio/mp4',
-  pdf: 'application/pdf',
+  pdf: 'application/pdf', csv: 'text/csv',
 }
 
 export function mimeFor(name: string, fallback = 'application/octet-stream'): string {

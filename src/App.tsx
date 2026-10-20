@@ -6,6 +6,7 @@ import Welcome from './components/Welcome'
 import FileTree from './components/FileTree'
 import SidePanel from './components/SidePanel'
 import AssetView from './components/AssetView'
+import TableView from './components/TableView'
 import QuickSwitcher from './components/QuickSwitcher'
 import CommentDialog from './components/CommentDialog'
 const NoteEditor = lazy(() => import('./editor/NoteEditor'))
@@ -28,9 +29,13 @@ import TrashView from './components/TrashView'
 import FolderView from './components/FolderView'
 import NotFound from './components/NotFound'
 import { useRoute } from './lib/router'
+import { onUpdateReady, takeUpdate } from './lib/sw'
 import { cx, titleOf, uid } from './lib/util'
 
 type View = 'note' | 'graph' | 'trash'
+
+/** Fixed, so a re-subscribe cannot stack a second copy of the same offer. */
+const UPDATE_TOAST = 'sw-update'
 
 export default function App() {
   const store = useStore()
@@ -165,6 +170,21 @@ export default function App() {
     if (snapshot.editing) store.endEdit()
     action()
   }, [store])
+
+  /*
+   * A waiting build takes over only once the editor is settled: applying it
+   * reloads the page, and an unsaved note lives in memory until then. Routing
+   * through `guarded` turns that into the same save/discard question every
+   * other interruption asks.
+   */
+  useEffect(() => onUpdateReady(() => {
+    setToasts(list => (list.some(t => t.id === UPDATE_TOAST) ? list : [...list, {
+      id: UPDATE_TOAST,
+      tone: 'info',
+      message: 'A new version of Superbrain is ready.',
+      action: { label: 'Reload', run: () => guarded(takeUpdate) },
+    }]))
+  }), [guarded])
 
   /** Save one note as a standalone HTML file, pictures and all. */
   const exportNoteHtml = useCallback((id: string) => {
@@ -347,9 +367,17 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [store])
 
-  if (restoring) return <div className="startup" role="status">Opening your workspace…</div>
-  if (state.status === 'locked') return <UnlockScreen />
-  if (state.status !== 'ready') return <Welcome />
+  /*
+   * The screens before a vault opens still need the toast layer: an update
+   * offer that only appears once a vault is loaded would be invisible exactly
+   * where taking it is safest, since nothing is unsaved yet.
+   */
+  const notices = <Toasts toasts={toasts} onDismiss={dismiss} />
+  if (restoring) return <>
+    <div className="startup" role="status">Opening your workspace…</div>{notices}
+  </>
+  if (state.status === 'locked') return <><UnlockScreen />{notices}</>
+  if (state.status !== 'ready') return <><Welcome />{notices}</>
 
   const active = store.node(state.activeId)
   const trashCount = store.trashed().filter(n => !n.parentId || !store.node(n.parentId)?.deletedAt).length
@@ -512,6 +540,8 @@ export default function App() {
                 <NotFound path={missing} onOpen={open} onHome={() => { setMissing(null); navigate('') }} />
               ) : !active || active.kind === 'folder' ? (
                 <FolderView folderId={active?.id ?? null} onOpen={open} />
+              ) : active.kind === 'table' ? (
+                <TableView node={active} />
               ) : active.kind === 'asset' ? (
                 <AssetView node={active} />
               ) : (

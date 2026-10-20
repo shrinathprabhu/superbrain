@@ -1,5 +1,6 @@
 import { zip } from 'fflate'
 import type { VaultNode } from './types'
+import { isTextKind } from './util'
 
 export interface ExportSource {
   nodes: VaultNode[]
@@ -24,7 +25,7 @@ export async function exportVault(src: ExportSource, name = 'superbrain-vault'):
   for (const node of src.nodes) {
     const path = src.pathOf(node.id)
     if (!path) continue
-    if (node.kind === 'note') {
+    if (isTextKind(node.kind)) {
       files[path] = encoder.encode(src.body(node.id))
     } else if (node.kind === 'asset') {
       const blob = await src.asset(node.id)

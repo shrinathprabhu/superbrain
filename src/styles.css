@@ -31,6 +31,7 @@
   --graph-note: #2c4bb5;
   --graph-folder: #8a5a00;
   --graph-asset: #2a6a1c;
+  --graph-table: #15706a;
   --graph-open: #b31f3c;
   --graph-edge: rgba(60, 74, 102, 0.42);
   --graph-edge-soft: rgba(60, 74, 102, 0.12);
@@ -73,6 +74,7 @@
   --graph-note: #6c95f5;
   --graph-folder: #ebb867;
   --graph-asset: #a8dc79;
+  --graph-table: #7fd4c1;
   --graph-open: #ff8098;
   --graph-edge: rgba(160, 175, 200, 0.34);
   --graph-edge-soft: rgba(160, 175, 200, 0.09);
@@ -653,7 +655,14 @@ kbd {
   background: none; border: 0; cursor: pointer; color: var(--text-faint);
   font-size: 16px; line-height: 1; padding: 0 2px; flex: none;
 }
+.toast span { flex: 1; }
 .toast button:hover { color: var(--text); }
+.toast-action {
+  font-size: 12px; font-weight: 500; color: var(--accent);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) - 3px);
+  padding: 3px 9px; white-space: nowrap; align-self: center;
+}
+.toast-action:hover { color: var(--accent); border-color: var(--accent); }
 
 .tree-row:focus-visible,
 .panel-tab:focus-visible,
@@ -1467,3 +1476,126 @@ html { scrollbar-gutter: stable; }
   overflow: hidden; background: var(--bg-raised);
 }
 .visual-media > .asset-missing { justify-content: center; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------ table (.csv) */
+/*
+ * A wide grid that stays usable: the header pins to the top, and the row
+ * number plus the two editable columns pin to the left, so a reviewer can
+ * scroll twenty columns sideways and still reach Status and Comment.
+ * Sticky cells inherit their background from the row, which is what keeps the
+ * done/declined tint and the hover state unbroken across the pinned edge.
+ */
+.table-view { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+
+.table-head {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 14px 18px; border-bottom: 1px solid var(--border-soft);
+}
+.table-title { display: grid; gap: 2px; margin-right: auto; min-width: 0; }
+.table-title h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.table-meta { font-size: 12px; color: var(--text-faint); }
+
+.table-progress { display: flex; align-items: center; gap: 8px; }
+.table-bar {
+  width: 120px; height: 6px; border-radius: 999px;
+  background: var(--bg-sunken); overflow: hidden;
+}
+.table-bar span { display: block; height: 100%; background: var(--ok); transition: width 160ms ease; }
+.table-count { font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+.table-filters { display: flex; gap: 4px; }
+.table-filter {
+  font-size: 12px; padding: 4px 10px; cursor: pointer;
+  background: none; color: var(--text-dim);
+  border: 1px solid var(--border-soft); border-radius: 999px;
+}
+.table-filter:hover { background: var(--bg-hover); color: var(--text); }
+.table-filter.on {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent-ink); font-weight: 500;
+}
+
+.table-scroll { flex: 1; min-height: 0; overflow: auto; }
+
+.data-table {
+  border-collapse: separate; border-spacing: 0;
+  font-size: 13px; line-height: 1.45; width: max-content; min-width: 100%;
+}
+.data-table th, .data-table td {
+  text-align: left; vertical-align: top; padding: 8px 12px;
+  border-bottom: 1px solid var(--border-soft); max-width: 320px;
+}
+.data-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg-sunken); color: var(--text-dim);
+  font-weight: 600; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+  white-space: nowrap; border-bottom: 1px solid var(--border);
+}
+/* Row backgrounds live on the row so the pinned cells can inherit them. */
+.data-table tbody tr { background: var(--bg); }
+.data-table tbody tr:hover { background: var(--bg-hover); }
+.data-table tbody tr.is-done { background: color-mix(in srgb, var(--ok) 11%, var(--bg)); }
+.data-table tbody tr.is-declined { background: color-mix(in srgb, var(--danger) 10%, var(--bg)); }
+
+/* The three pinned columns. Offsets match the widths set just below. */
+.data-table .col-n { left: 0; width: 52px; min-width: 52px; }
+.data-table .col-status { left: 52px; width: 162px; min-width: 162px; }
+.data-table .col-comment { left: 214px; width: 210px; min-width: 210px; }
+.data-table .col-n,
+.data-table .col-status,
+.data-table .col-comment {
+  position: sticky; z-index: 1; background: inherit;
+  border-right: 1px solid var(--border-soft);
+}
+.data-table .col-comment { border-right: 2px solid var(--border); }
+/* Pinned *and* in the header: must sit above both. */
+.data-table thead .col-n,
+.data-table thead .col-status,
+.data-table thead .col-comment { z-index: 3; background: var(--bg-sunken); }
+
+.data-table tbody .col-n {
+  font-weight: 400; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; font-size: 12px;
+}
+
+.status-set { display: flex; gap: 4px; }
+.status-btn {
+  font-size: 11px; font-weight: 500; padding: 3px 8px; cursor: pointer;
+  background: none; color: var(--text-faint);
+  border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.status-btn:hover { border-color: var(--border); color: var(--text); }
+.status-btn.done.on {
+  background: var(--ok); border-color: var(--ok);
+  color: var(--accent-contrast);
+}
+.status-btn.declined.on {
+  background: var(--danger); border-color: var(--danger);
+  color: var(--accent-contrast);
+}
+
+.row-drift {
+  display: inline-block; margin-top: 4px; font-size: 10px;
+  color: var(--warn); text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.row-comment {
+  width: 100%; font: inherit; font-size: 12px; color: var(--text);
+  background: none; padding: 4px 6px;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+}
+.row-comment::placeholder { color: var(--text-faint); opacity: 0.7; }
+.row-comment:hover { border-color: var(--border-soft); }
+.row-comment:focus {
+  outline: none; background: var(--bg);
+  border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* Long free-text cells stay on one line until hovered; the full value is in
+   the title attribute for anyone who needs it now rather than on hover. */
+.data-table tbody td .cell {
+  display: block; max-height: 3.2em; overflow: hidden;
+  text-overflow: ellipsis; color: var(--text-dim);
+}
+.data-table tbody tr:hover td .cell { max-height: none; }

@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import type { Comment, VaultAdapter, VaultInfo, VaultMeta, VaultNode } from '../lib/types'
+import type { Comment, RowReview, VaultAdapter, VaultInfo, VaultMeta, VaultNode } from '../lib/types'
 import { buildIndex, childrenOf, descendantsOf, isDescendant, liveNodes, orderNewByName, pathMap, uniqueName } from '../lib/paths'
 import { buildLinkGraph, makeResolver, retargetLinks, type LinkGraph, type Resolver } from '../lib/links'
-import { isMarkdownFile, mimeFor, sanitizeName, uid } from '../lib/util'
+import { isMarkdownFile, isTableFile, isTextKind, mimeFor, sanitizeName, uid } from '../lib/util'
 import { tagsIn } from '../lib/markdown'
 import { screenFiles, type Intake } from '../lib/intake'
 import { FsAdapter, HAS_FS_ACCESS, scanDirectory, samePath, trashPathFor, IGNORED } from './fs'
@@ -24,6 +24,7 @@ export interface VaultState {
   info: VaultInfo | null
   nodes: VaultNode[]
   comments: Comment[]
+  reviews: RowReview[]
   bodies: Map<string, string>
   activeId: string | null
   expanded: Set<string>
@@ -38,7 +39,7 @@ export interface VaultState {
 
 const EMPTY: VaultState = {
   status: 'idle', error: null, lockedVault: null, info: null,
-  nodes: [], comments: [], bodies: new Map(),
+  nodes: [], comments: [], reviews: [], bodies: new Map(),
   activeId: null, expanded: new Set(), editing: null, dirty: false,
   progress: null, saving: false, rev: 0,
 }
@@ -196,7 +197,7 @@ export class VaultStore {
       const live = meta.nodes.filter(n => !n.deletedAt)
       const paths = pathMap(meta.nodes)
       for (const node of live) {
-        if (node.kind === 'note' && !bodies.has(node.id)) {
+        if (isTextKind(node.kind) && !bodies.has(node.id)) {
           bodies.set(node.id, (await idb.get<string>('notes', node.id)) ?? '')
         }
       }
@@ -308,7 +309,7 @@ export class VaultStore {
       for (const node of nodes) {
         if (node.deletedAt) continue
         const path = paths.get(node.id)!
-        if (node.kind === 'note') {
+        if (isTextKind(node.kind)) {
           await target.writeNote(node, path, this.body(node.id))
         } else if (node.kind === 'asset') {
           const blob = source ? await source.readAsset(node, path) : null
@@ -316,7 +317,7 @@ export class VaultStore {
           else missingAssets.push(node.name)
         }
       }
-      await target.saveMeta({ version: 1, nodes, comments: this.state.comments })
+      await target.saveMeta({ version: 1, nodes, comments: this.state.comments, reviews: this.state.reviews })
     } catch (e) {
       this.set({ progress: null, error: `Could not write to that folder: ${(e as Error).message}` })
       return { ok: false, missingAssets }
@@ -350,17 +351,17 @@ export class VaultStore {
     const target = new IdbAdapter(storageKey, this.state.info.label)
     const nodes = this.state.nodes
     const droppedAssets = nodes.filter(n => n.kind === 'asset' && !n.deletedAt).map(n => n.name)
-    const total = nodes.filter(n => n.kind === 'note').length
+    const total = nodes.filter(n => isTextKind(n.kind)).length
 
     this.set({ progress: { label: 'Copying into this browser', done: 0, total } })
     let done = 0
     try {
       for (const node of nodes) {
-        if (node.kind !== 'note' || node.deletedAt) continue
+        if (!isTextKind(node.kind) || node.deletedAt) continue
         await target.writeNote(node, '', this.body(node.id))
         this.set({ progress: { label: 'Copying into this browser', done: ++done, total } })
       }
-      await target.saveMeta({ version: 1, nodes, comments: this.state.comments })
+      await target.saveMeta({ version: 1, nodes, comments: this.state.comments, reviews: this.state.reviews })
     } catch (e) {
       this.set({ progress: null, error: `Could not copy into this browser: ${(e as Error).message}` })
       return { ok: false, droppedAssets }
@@ -400,8 +401,9 @@ export class VaultStore {
       const saved = await adapter.loadMeta()
       const { nodes, bodies } = await buildTreeFromScan(entries, saved)
       const comments = (saved?.comments ?? []).filter(c => nodes.some(n => n.id === c.noteId))
+      const reviews = (saved?.reviews ?? []).filter(r => nodes.some(n => n.id === r.tableId))
       this.set({
-        status: 'ready', info: adapter.info, nodes, bodies, comments,
+        status: 'ready', info: adapter.info, nodes, bodies, comments, reviews,
         activeId: pickInitial(nodes), expanded: defaultExpanded(nodes), progress: null,
       })
       await idb.set('kv', LAST_MODE, 'fs')
@@ -452,7 +454,7 @@ export class VaultStore {
       let nodes = meta?.nodes ?? []
       const bodies = new Map<string, string>()
       for (const n of nodes) {
-        if (n.kind === 'note') bodies.set(n.id, await adapter.readNote(n, ''))
+        if (isTextKind(n.kind)) bodies.set(n.id, await adapter.readNote(n, ''))
       }
       if (!nodes.length && seedWelcome) {
         const now = Date.now()
@@ -466,7 +468,8 @@ export class VaultStore {
       }
       this.set({
         status: 'ready', info: adapter.info, nodes, bodies,
-        comments: meta?.comments ?? [], activeId: pickInitial(nodes),
+        comments: meta?.comments ?? [], reviews: meta?.reviews ?? [],
+        activeId: pickInitial(nodes),
         expanded: defaultExpanded(nodes), progress: null,
       })
       await this.persistMeta()
@@ -484,6 +487,7 @@ export class VaultStore {
         version: 1,
         nodes: this.state.nodes,
         comments: this.state.comments,
+        reviews: this.state.reviews,
       }
       this.set({ progress: { label: 'Encrypting', done: 0, total: 0 } })
       try {
@@ -625,7 +629,10 @@ export class VaultStore {
 
   private async persistMeta() {
     if (!this.adapter) return
-    const meta: VaultMeta = { version: 1, nodes: this.state.nodes, comments: this.state.comments }
+    const meta: VaultMeta = {
+      version: 1, nodes: this.state.nodes,
+      comments: this.state.comments, reviews: this.state.reviews,
+    }
     try { await this.adapter.saveMeta(meta) } catch { /* best effort */ }
   }
 
@@ -798,6 +805,7 @@ export class VaultStore {
       nodes: this.state.nodes.filter(n => !gone.has(n.id)),
       bodies,
       comments: this.state.comments.filter(c => !gone.has(c.noteId)),
+      reviews: this.state.reviews.filter(r => !gone.has(r.tableId)),
     })
     await this.persistMeta()
   }
@@ -919,7 +927,7 @@ export class VaultStore {
         n => n.kind !== 'folder' && !n.deletedAt && n.name.toLowerCase() === wanted.toLowerCase(),
       )
       if (already) {
-        if (already.kind === 'note') {
+        if (isTextKind(already.kind)) {
           const incoming = await item.file.text()
           if ((bodies.get(already.id) ?? '') === incoming) skippedSame++
           else skippedDiffer.push(item.path)
@@ -935,14 +943,16 @@ export class VaultStore {
       const name = uniqueName(siblings, wanted)
       const now = Date.now()
       const isNote = isMarkdownFile(name)
+      const isTable = isTableFile(name)
       const node: VaultNode = {
-        id: uid(), parentId: folderId, name, kind: isNote ? 'note' : 'asset',
+        id: uid(), parentId: folderId, name,
+        kind: isNote ? 'note' : isTable ? 'table' : 'asset',
         order: nextOrder(siblings), createdAt: now, updatedAt: now,
         ...(isNote ? {} : { mime: item.file.type || mimeFor(name), size: item.file.size }),
       }
       nodes.push(node)
       created.push(node.id)
-      if (isNote) bodies.set(node.id, await item.file.text())
+      if (isNote || isTable) bodies.set(node.id, await item.file.text())
       else sources.set(node.id, item.file)
       this.set({ progress: { label: 'Importing', done: ++done, total: files.length } })
     }
@@ -964,7 +974,7 @@ export class VaultStore {
         const node = nodes.find(n => n.id === id)!
         const source = sources.get(id)
         try {
-          if (node.kind === 'note') await this.adapter.writeNote(node, paths.get(id)!, bodies.get(id) ?? '')
+          if (isTextKind(node.kind)) await this.adapter.writeNote(node, paths.get(id)!, bodies.get(id) ?? '')
           else if (source) await this.adapter.writeAsset(node, paths.get(id)!, source)
         } catch { /* skip unwritable file, keep going */ }
         this.set({ progress: { label: 'Saving', done: ++saved, total: created.length } })
@@ -973,7 +983,7 @@ export class VaultStore {
 
     this.lastIntake = { ...intake, alreadyHere: skippedSame, conflicting: skippedDiffer }
     this.set({ progress: null })
-    const firstNote = created.map(id => nodes.find(n => n.id === id)!).find(n => n.kind === 'note')
+    const firstNote = created.map(id => nodes.find(n => n.id === id)!).find(n => isTextKind(n.kind))
     if (firstNote) this.setActive(firstNote.id)
     await this.persistMeta()
     return created
@@ -1040,6 +1050,31 @@ export class VaultStore {
     this.set({ comments: this.state.comments.filter(c => c.id !== id) })
     this.schedulePersistMeta()
   }
+
+  // ------------------------------------------------------------ table reviews
+
+  /**
+   * Set or clear the mark on one row. A row with no status and no comment is
+   * dropped rather than stored empty, so a cleared row leaves no trace.
+   */
+  setReview(
+    tableId: string,
+    row: number,
+    fingerprint: string,
+    patch: Partial<Pick<RowReview, 'status' | 'comment'>>,
+  ) {
+    const existing = this.state.reviews.find(r => r.tableId === tableId && r.row === row)
+    const next: RowReview = {
+      tableId, row, fingerprint,
+      status: patch.status !== undefined ? patch.status : existing?.status ?? null,
+      comment: patch.comment !== undefined ? patch.comment : existing?.comment ?? '',
+      updatedAt: Date.now(),
+    }
+    const others = this.state.reviews.filter(r => !(r.tableId === tableId && r.row === row))
+    const empty = next.status === null && next.comment.trim() === ''
+    this.set({ reviews: empty ? others : [...others, next] })
+    this.schedulePersistMeta()
+  }
 }
 
 export interface ImportFile { path: string; file: File }
@@ -1092,14 +1127,17 @@ async function buildTreeFromScan(
     const prior = savedByPath.get(entry.path)
     const now = Date.now()
     const isNote = entry.kind === 'file' && isMarkdownFile(name)
+    const isTable = entry.kind === 'file' && isTableFile(name)
     const node: VaultNode = {
       id: prior?.id ?? uid(),
       parentId,
       name,
-      kind: entry.kind === 'folder' ? 'folder' : isNote ? 'note' : 'asset',
+      kind: entry.kind === 'folder' ? 'folder' : isNote ? 'note' : isTable ? 'table' : 'asset',
       order: prior?.order ?? 0,
       createdAt: prior?.createdAt ?? entry.file?.lastModified ?? now,
       updatedAt: entry.file?.lastModified ?? now,
+      // A table keeps its size for the file list, but like a note its bytes
+      // live in `bodies`, not in asset storage.
       ...(entry.kind === 'file' && !isNote
         ? { mime: entry.file?.type || mimeFor(name), size: entry.file?.size }
         : {}),
@@ -1107,7 +1145,7 @@ async function buildTreeFromScan(
     idByPath.set(entry.path, node.id)
     nodes.push(node)
     if (!prior) fresh.push(node.id)
-    if (isNote && entry.file) bodies.set(node.id, await entry.file.text())
+    if ((isNote || isTable) && entry.file) bodies.set(node.id, await entry.file.text())
   }
 
   // A directory listing comes back in whatever order the filesystem chose, so
